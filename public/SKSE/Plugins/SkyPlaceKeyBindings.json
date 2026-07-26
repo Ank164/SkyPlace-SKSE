@@ -1,0 +1,163 @@
+{
+  "SkyPrompt.EnableDisable": [
+    {
+      "device": "keyboard",
+      "key": "o"
+    },
+    {
+      "device": "gamepad",
+      "key": "rightshoulder",
+      "trigger": "doubleTap"
+    }
+  ],
+  "SkyPrompt.Inventory.Clone": [
+    {
+      "device": "mouse",
+      "key": "middlebutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "leftshoulder"
+    }
+  ],
+  "SkyPrompt.Place.Place": [
+    {
+      "device": "mouse",
+      "key": "leftbutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "lefttrigger"
+    }
+  ],
+  "SkyPrompt.Place.Pick": [
+    {
+      "device": "mouse",
+      "key": "rightbutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "righttrigger"
+    }
+  ],
+  "SkyPrompt.Place.Translate": [
+    {
+      "device": "keyboard",
+      "key": "q"
+    },
+    {
+      "device": "gamepad",
+      "key": "a"
+    }
+  ],
+  "SkyPrompt.Place.Orbit": [
+    {
+      "device": "keyboard",
+      "key": "r"
+    },
+    {
+      "device": "gamepad",
+      "key": "x"
+    }
+  ],
+  "SkyPrompt.Place.TranslationUpDown": [
+    {
+      "device": "keyboard",
+      "key": "v"
+    },
+    {
+      "device": "gamepad",
+      "key": "up"
+    }
+  ],
+  "SkyPrompt.Place.TranslationLeftRight": [
+    {
+      "device": "keyboard",
+      "key": "h"
+    },
+    {
+      "device": "gamepad",
+      "key": "left"
+    }
+  ],
+  "SkyPrompt.Place.TranslationDepth": [
+    {
+      "device": "keyboard",
+      "key": "f"
+    },
+    {
+      "device": "gamepad",
+      "key": "right"
+    }
+  ],
+  "SkyPrompt.Place.RotationHorizontal": [
+    {
+      "device": "keyboard",
+      "key": "h"
+    },
+    {
+      "device": "gamepad",
+      "key": "left"
+    }
+  ],
+  "SkyPrompt.Place.RotationVertical": [
+    {
+      "device": "keyboard",
+      "key": "v"
+    },
+    {
+      "device": "gamepad",
+      "key": "up"
+    }
+  ],
+  "SkyPrompt.Place.RotationFree": [
+    {
+      "device": "keyboard",
+      "key": "f"
+    },
+    {
+      "device": "gamepad",
+      "key": "right"
+    }
+  ],
+  "SkyPrompt.Pick.Pick": [
+    {
+      "device": "mouse",
+      "key": "rightbutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "lefttrigger"
+    }
+  ],
+  "SkyPrompt.Pick.Move": [
+    {
+      "device": "mouse",
+      "key": "leftbutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "righttrigger"
+    }
+  ],
+  "SkyPrompt.Pick.Select": [
+    {
+      "device": "mouse",
+      "key": "middlebutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "a"
+    }
+  ],
+  "SkyPrompt.Pick.DeselectAll": [
+    {
+      "device": "keyboard",
+      "key": "x"
+    },
+    {
+      "device": "gamepad",
+      "key": "b"
+    }
+  ]
+}

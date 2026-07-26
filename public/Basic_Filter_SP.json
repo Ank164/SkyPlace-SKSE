@@ -1,0 +1,50 @@
+[
+  {
+    "Regex": ".*",
+    "Name": "Object",
+    "Weight": 1,
+    "Value": 100
+  },
+  {
+    "Regex": "Cart[^a-z]",
+    "Name": "Cart",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Furniture[^a-z]",
+    "Name": "Furniture",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Clutter[^a-z]",
+    "Name": "Clutter",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Chair[^a-z]",
+    "Name": "Chair",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Table[^a-z]",
+    "Name": "Table",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Tent[^a-z]",
+    "Name": "Tent",
+    "Weight": 10,
+    "Value": 100
+  },
+  {
+    "Regex": "Hut[^a-z]",
+    "Name": "Hut",
+    "Weight": 10,
+    "Value": 100
+  }
+]

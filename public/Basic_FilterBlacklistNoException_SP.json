@@ -1,0 +1,9 @@
+[
+  "Terrain[^a-z]",
+  "Door[^a-z]",
+  "Road[^a-z]",
+  "FX[^a-z]",
+  "SolitudeBaseMarket[^a-z]",
+  "Rock[^a-z]",
+  "Rocks[^a-z]"
+]

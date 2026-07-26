@@ -1,0 +1,34 @@
+{
+  "SkyPrompt.Place.Place": "Soltar",
+  "SkyPrompt.Place.Pick": "Pegar",
+  "SkyPrompt.Place.Translate": "Translação",
+  "SkyPrompt.Place.ExitTranslation": "Sair da translação",
+  "SkyPrompt.Place.TranslationUpDown": "Cima / Baixo",
+  "SkyPrompt.Place.TranslationLeftRight": "Esquerda / Direita",
+  "SkyPrompt.Place.TranslationDepth": "Mais perto / Mais longe",
+  "SkyPrompt.Place.Orbit": "Rotação",
+  "SkyPrompt.Place.ExitRotation": "Sair da rotação",
+  "SkyPrompt.Place.RotationHorizontal": "Horizontal",
+  "SkyPrompt.Place.RotationVertical": "Vertical",
+  "SkyPrompt.Place.RotationFree": "Livre",
+
+  "SkyPrompt.Pick.Move": "Mover",
+  "SkyPrompt.Pick.Pick": "Pegar",
+  "SkyPrompt.Inventory.Clone.Single": "Clonar (1x Gema de Alma Negra)",
+  "SkyPrompt.Inventory.Clone.Group": "Clonar ({}x Gemas de Alma Negra)",
+  "SkyPrompt.Pick.Select": "Selecionar",
+  "SkyPrompt.Pick.Deselect": "Desselecionar",
+  "SkyPrompt.Pick.DeselectAll": "Desselecionar tudo",
+
+  "SkyPrompt.Toggle.Enter": "Começar a decorar",
+  "SkyPrompt.Toggle.Exit": "Parar de decorar",
+  "Main.Section": "Principal",
+  "Config.Section": "Configuração",
+  "Config.DisableSoulGemCloning": "Desativar clonagem com Gemas de Alma Negra",
+  "Config.IgnoreFilters": "Mover tudo (ignorar todos os filtros)",
+  "Health.DynamicForms.Section": "Saúde/Formulários dinâmicos",
+  "Health.RetainedResources.Section": "Saúde/Recursos retidos",
+  "Input.Binding.DoubleTap": "Toque duplo em {}",
+
+  "Placer.AlreadyPlacing": "Você já está movendo um objeto"
+}
