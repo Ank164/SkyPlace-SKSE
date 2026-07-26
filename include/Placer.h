@@ -24,7 +24,6 @@ class Placer {
     static inline float appliedHorizontalAngle = 0.0f;
     static inline float raycastDistance = 500.0f;
     static inline RE::ObjectRefHandle moveHandle;
-    static inline bool miniatureMode = false;
     static inline bool inventorySource = false;
     static inline RE::COL_LAYER refCollision;
     static RE::NiPoint3 Cast();
@@ -52,7 +51,6 @@ class Placer {
 
 public:
     static bool IsGroupMember(const RE::ObjectRefHandle& handle);
-    static void SetMiniatureMode(bool value);
     static void SaveChangeEvent();
     static void Tick();
     static void Move(const RE::ObjectRefHandle& handle);

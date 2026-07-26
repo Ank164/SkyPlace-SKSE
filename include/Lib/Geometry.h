@@ -15,6 +15,5 @@ public:
     ~Geometry();
     Geometry(RE::NiAVObject* obj);
     bool Empty() const;
-    std::pair<RE::NiPoint3, RE::NiPoint3> GetBoundingBox(RE::NiPoint3 position, RE::NiPoint3 angle, float scale);
     std::pair<RE::NiPoint3, RE::NiPoint3> GetWorldBoundingBox() const;
 };

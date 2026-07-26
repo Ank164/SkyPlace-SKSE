@@ -232,7 +232,6 @@ void Placer::CancelPlaceEvent() {
     }
 }
 
-void Placer::SetMiniatureMode(bool value) { miniatureMode = value; }
 
 void Placer::SaveChangeEvent() {
     FinishGroupMove(false);
@@ -281,14 +280,11 @@ float ComputeScaleForTargetVolume(RE::NiPoint3 min, RE::NiPoint3 max, float scal
     return std::cbrt((targetVolume * targetVolume * targetVolume) / currentVolume) * scale;
 }
 void Placer::PreventFloorClipping() {
-    const RE::ObjectRefHandle movingHandle = GetMoveHandle();
-    const RE::NiPointer<RE::TESObjectREFR> moveRef = movingHandle.get();
-    if (!moveRef) {
-        return;
-    }
+    const float floorZ = currentPosition.z;
 
     bool foundGeometry = false;
     float lowestPoint = 0.0f;
+
     for (const GroupMember& member : groupMembers) {
         const RE::NiPointer<RE::TESObjectREFR> memberRef = member.handle.get();
         RE::NiAVObject* member3D = memberRef ? memberRef->Get3D() : nullptr;
@@ -301,8 +297,9 @@ void Placer::PreventFloorClipping() {
             continue;
         }
 
-        const std::pair<RE::NiPoint3, RE::NiPoint3> bounds = geometry.GetWorldBoundingBox();
+        const auto bounds = geometry.GetWorldBoundingBox();
         const float memberLowestPoint = bounds.first.z;
+
         if (!foundGeometry || memberLowestPoint < lowestPoint) {
             lowestPoint = memberLowestPoint;
             foundGeometry = true;
@@ -310,7 +307,7 @@ void Placer::PreventFloorClipping() {
     }
 
     if (foundGeometry) {
-        currentPosition.z -= lowestPoint - currentPosition.z;
+        currentPosition.z += floorZ - lowestPoint;
     }
 }
 
@@ -408,16 +405,6 @@ void Placer::Move(const RE::ObjectRefHandle& handle) {
     numNormals = 0;
     translation = {};
     raycastDistance = defaultRaycastDistance;
-
-    if (reference3D && groupMembers.size() == 1) {
-        if (miniatureMode) {
-            auto geo = Geometry(ref->Get3D());
-            auto bound = geo.GetBoundingBox(ref->GetPosition(), ref->GetAngle(), ref->GetScale());
-            auto scale = ComputeScaleForTargetVolume(bound.first, bound.second, ref->GetScale(), 50);
-            ref->SetScale(scale);
-            ScreenLog::Add("Scale: {}", scale);
-        }
-    }
 
     Picker::ShowPlacementHighlights(handle);
     ShowGroupPlacementHighlights();

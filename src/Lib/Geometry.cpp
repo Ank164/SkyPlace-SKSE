@@ -133,44 +133,6 @@ bool Geometry::Empty() const {
     return positions.empty();
 }
 
-std::pair<RE::NiPoint3, RE::NiPoint3> Geometry::GetBoundingBox(RE::NiPoint3 position, RE::NiPoint3 angle, float scale) {
-    constexpr float maxValue = std::numeric_limits<float>::max();
-    RE::NiPoint3 min;
-    RE::NiPoint3 max;
-    bool first = true;
-
-    for (auto i = 0; i < positions.size(); i++) {
-        auto p1 = Rotate(positions[i] - position * scale, angle);
-
-        if (first) {
-            first = false;
-            min = p1;
-            max = p1;
-            continue;
-        }
-
-        if (p1.x < min.x) {
-            min.x = p1.x;
-        }
-        if (p1.x > max.x) {
-            max.x = p1.x;
-        }
-        if (p1.y < min.y) {
-            min.y = p1.y;
-        }
-        if (p1.y > max.y) {
-            max.y = p1.y;
-        }
-        if (p1.z < min.z) {
-            min.z = p1.z;
-        }
-        if (p1.z > max.z) {
-            max.z = p1.z;
-        }
-    }
-
-    return std::pair(min, max);
-}
 
 std::pair<RE::NiPoint3, RE::NiPoint3> Geometry::GetWorldBoundingBox() const {
     if (positions.empty()) {
