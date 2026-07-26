@@ -3,7 +3,6 @@
 #include "Hooks.h"
 #include "DrawDebugExtension.h"
 #include "Graphics.h"
-#include "ScreenBlank.h"
 #include "HUD.h"
 #include "Picker.h"
 #include "Placer.h"
@@ -23,7 +22,6 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
     if (message->type == SKSE::MessagingInterface::kDataLoaded) {
         SkyPlaceCursorMenu::Register();
         HUD::Install();
-        ScreenBlank::Install();
         FormsById::Install();
         ScreenLog::Install();
     }
@@ -33,7 +31,6 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
     ) {
         Picker::SaveChangeEvent();
         Placer::SaveChangeEvent();
-        ScreenBlank::Reset();
     }
 }
 

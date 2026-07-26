@@ -18,7 +18,6 @@
 #include "ObjectGroup.h"
 #include "Picker.h"
 #include "Raycast.h"
-#include "ScreenBlank.h"
 #include "Transform.h"
 #include "Translations.h"
 #include "ScreenLog.h"
@@ -619,7 +618,6 @@ void Placer::ProcessPendingMaterializedMove() {
 
     Move(materializedHandles.front());
     inventorySource = true;
-    ScreenBlank::Blank(0.0, 0.0005);
 }
 
 bool Placer::Drop(RE::TESBoundObject* obj, bool itemRemoved) {
