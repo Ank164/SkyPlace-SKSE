@@ -11,6 +11,7 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "DrawDebug.h"
 #include "Geometry.h"
 #include "HUD.h"
 #include "Menu.h"
@@ -26,6 +27,34 @@ namespace {
     constexpr float defaultRaycastDistance = 500.0f;
     constexpr float minimumRaycastDistance = 10.0f;
     constexpr float maximumRaycastDistance = 5000.0f;
+
+    void DrawWorldBoundingBox(
+        const std::pair<RE::NiPoint3, RE::NiPoint3>& bounds) {
+        const RE::NiPoint3& minimum = bounds.first;
+        const RE::NiPoint3& maximum = bounds.second;
+
+        const RE::NiPoint3 bottomBackLeft{minimum.x, minimum.y, minimum.z};
+        const RE::NiPoint3 bottomBackRight{maximum.x, minimum.y, minimum.z};
+        const RE::NiPoint3 bottomFrontRight{maximum.x, maximum.y, minimum.z};
+        const RE::NiPoint3 bottomFrontLeft{minimum.x, maximum.y, minimum.z};
+        const RE::NiPoint3 topBackLeft{minimum.x, minimum.y, maximum.z};
+        const RE::NiPoint3 topBackRight{maximum.x, minimum.y, maximum.z};
+        const RE::NiPoint3 topFrontRight{maximum.x, maximum.y, maximum.z};
+        const RE::NiPoint3 topFrontLeft{minimum.x, maximum.y, maximum.z};
+
+        DrawDebug::DrawLine(bottomBackLeft, bottomBackRight);
+        DrawDebug::DrawLine(bottomBackRight, bottomFrontRight);
+        DrawDebug::DrawLine(bottomFrontRight, bottomFrontLeft);
+        DrawDebug::DrawLine(bottomFrontLeft, bottomBackLeft);
+        DrawDebug::DrawLine(topBackLeft, topBackRight);
+        DrawDebug::DrawLine(topBackRight, topFrontRight);
+        DrawDebug::DrawLine(topFrontRight, topFrontLeft);
+        DrawDebug::DrawLine(topFrontLeft, topBackLeft);
+        DrawDebug::DrawLine(bottomBackLeft, topBackLeft);
+        DrawDebug::DrawLine(bottomBackRight, topBackRight);
+        DrawDebug::DrawLine(bottomFrontRight, topFrontRight);
+        DrawDebug::DrawLine(bottomFrontLeft, topFrontLeft);
+    }
 
     void WrapDown(const RE::ObjectRefHandle& handle) {
         const RE::NiPointer<RE::TESObjectREFR> ref = handle.get();
@@ -292,12 +321,23 @@ void Placer::PreventFloorClipping() {
             continue;
         }
 
+        RE::NiUpdateData updateData;
+        updateData.time = 0.0f;
+        updateData.flags.set(RE::NiUpdateData::Flag::kDirty);
+        member3D->UpdateTransformAndBounds(updateData);
+
         const Geometry geometry(member3D);
         if (geometry.Empty()) {
             continue;
         }
 
-        const auto bounds = geometry.GetWorldBoundingBox();
+        const std::pair<RE::NiPoint3, RE::NiPoint3> bounds =
+            geometry.GetWorldBoundingBox();
+
+        #ifndef NDEBUG
+        DrawWorldBoundingBox(bounds);
+        #endif  // NDEBUG
+
         const float memberLowestPoint = bounds.first.z;
 
         if (!foundGeometry || memberLowestPoint < lowestPoint) {

@@ -113,18 +113,23 @@ Geometry::~Geometry() {}
 
 Geometry::Geometry(RE::NiAVObject* obj) {
     EachGeometry(obj, [this](RE::NiAVObject* o3d) -> void {
-        if (auto a_geometry = o3d->AsGeometry()) {
-            auto& model = a_geometry->GetGeometryRuntimeData();
+        RE::BSGeometry* geometry = o3d->AsGeometry();
+        if (!geometry) {
+            return;
+        }
 
-            if (auto triShape = model.rendererData) {
-                FetchVertexes(a_geometry, triShape);
-            }
+        RE::BSGeometry::GEOMETRY_RUNTIME_DATA& model =
+            geometry->GetGeometryRuntimeData();
+        const std::size_t initialPositionCount = positions.size();
 
-            if (auto skin = model.skinInstance) {
-                if (auto part = skin->skinPartition) {
-                    FetchBoneVertexes(a_geometry, part);
-                }
-            }
+        if (model.rendererData) {
+            FetchVertexes(geometry, model.rendererData);
+        }
+
+        if (positions.size() == initialPositionCount &&
+            model.skinInstance &&
+            model.skinInstance->skinPartition) {
+            FetchBoneVertexes(geometry, model.skinInstance->skinPartition);
         }
     });
 }
