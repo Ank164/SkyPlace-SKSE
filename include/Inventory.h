@@ -13,7 +13,11 @@ public:
 
             for (const auto& [item, invData] : ref->GetInventory()) {
                 const auto& [count, entry] = invData;
-                drop[entry->object] = count;
+                RE::TESBoundObject* object =
+                    entry && entry->object ? entry->object : item;
+                if (object && count > 0) {
+                    drop[object] = count;
+                }
             }
 
             for (const auto& [obj, count] : drop) {

@@ -27,6 +27,7 @@ namespace ObjectGroup {
     void Clear();
     bool PickUp(const std::vector<RE::ObjectRefHandle>& handles);
     bool IsGroupItem(RE::TESBoundObject* item);
+    RE::TESBoundObject* CloneEmpty(RE::TESBoundObject* item);
     bool Materialize(
         RE::TESBoundObject* item,
         std::vector<RE::ObjectRefHandle>& materializedHandles);

@@ -428,6 +428,39 @@ bool ObjectGroup::IsGroupItem(RE::TESBoundObject* item) {
     return item && groupsByItem.contains(item->GetFormID());
 }
 
+RE::TESBoundObject* ObjectGroup::CloneEmpty(RE::TESBoundObject* item) {
+    if (!item) {
+        return nullptr;
+    }
+
+    const auto sourceGroup = groupsByItem.find(item->GetFormID());
+    if (sourceGroup == groupsByItem.end()) {
+        return nullptr;
+    }
+
+    Data clonedData = sourceGroup->second;
+    if (clonedData.members.empty()) {
+        return nullptr;
+    }
+
+    clonedData.itemFormID = AcquireItem(clonedData.members.front().objectFormID);
+    clonedData.guid = CreateGuid();
+    clonedData.meshPath = clonedData.guid + ".nif";
+    for (Member& member : clonedData.members) {
+        member.inventoryChestRefID = 0;
+    }
+
+    RE::TESObjectMISC* clonedItem =
+        RE::TESForm::LookupByID<RE::TESObjectMISC>(clonedData.itemFormID);
+    if (!clonedItem) {
+        return nullptr;
+    }
+
+    ApplyItemData(clonedItem, clonedData);
+    Register(std::move(clonedData));
+    return clonedItem;
+}
+
 const ObjectGroup::Data* ObjectGroup::GetByMesh(std::string_view meshPath) {
     const auto item = itemsByMesh.find(NormalizeMeshPath(meshPath));
     if (item == itemsByMesh.end()) {
@@ -514,8 +547,7 @@ bool ObjectGroup::Materialize(
         const RE::NiPoint3 placedAngle = -extractedAngle;
 
         placedReference->SetScale(member.scale * previewScale);
-        Transform::SetPosition(placedHandle, position);
-        Transform::SetAngle(placedHandle, placedAngle);
+        Transform::Wrap(placedHandle, position, placedAngle);
         InventoryChest::Restore(member.inventoryChestRefID, placedHandle);
         materializedHandles.push_back(placedHandle);
     }

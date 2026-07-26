@@ -844,14 +844,19 @@ void InventoryCloneSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
         return;
     }
 
+    RE::TESBoundObject* clonedItem = ObjectGroup::CloneEmpty(item);
+    if (!clonedItem) {
+        Hide();
+        return;
+    }
+
     player->RemoveItem(
         blackSoulGem,
         currentCloneCost,
         RE::ITEM_REMOVE_REASON::kRemove,
         nullptr,
         nullptr);
-    player->AddObjectToContainer(item, nullptr, 2, nullptr);
-    player->RemoveItem(item, 1, RE::ITEM_REMOVE_REASON::kRemove, nullptr, nullptr);
+    player->AddObjectToContainer(clonedItem, nullptr, 1, nullptr);
     RE::UI::GetSingleton()->GetMenu<RE::InventoryMenu>()->itemList->Update();
 
     Hide();

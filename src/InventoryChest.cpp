@@ -114,7 +114,12 @@ RE::FormID InventoryChest::Store(const RE::ObjectRefHandle& sourceHandle) {
 void InventoryChest::Restore(
     RE::FormID chestRefID,
     const RE::ObjectRefHandle& targetHandle) {
-    if (chestRefID == 0 || !targetHandle) {
+    if (!targetHandle) {
+        return;
+    }
+
+    Inventory::Remove(targetHandle, RE::ITEM_REMOVE_REASON::kRemove);
+    if (chestRefID == 0) {
         return;
     }
 
@@ -125,7 +130,6 @@ void InventoryChest::Restore(
     }
     const RE::ObjectRefHandle chestHandle = chest->GetHandle();
 
-    Inventory::Remove(targetHandle, RE::ITEM_REMOVE_REASON::kRemove);
     TransferInventory(chestHandle, targetHandle);
     QueueRemoval(chestHandle);
 }
