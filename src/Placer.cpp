@@ -94,6 +94,73 @@ namespace {
 
         return result;
     }
+
+    void MoveCollisionBodies(
+        RE::NiAVObject* root,
+        const RE::NiTransform& oldTransform,
+        const RE::NiTransform& newTransform) {
+        if (!root) {
+            return;
+        }
+
+        const RE::NiMatrix3 rotationDelta =
+            newTransform.rotate * oldTransform.rotate.Transpose();
+        const float worldScale = RE::bhkWorld::GetWorldScale();
+        const float worldScaleInverse = RE::bhkWorld::GetWorldScaleInverse();
+
+        RE::BSVisit::TraverseScenegraphCollision(
+            root,
+            [&](RE::bhkNiCollisionObject* collisionObject) {
+                RE::bhkRigidBody* rigidBody =
+                    collisionObject && collisionObject->body ?
+                        collisionObject->body->AsBhkRigidBody() : nullptr;
+                if (!rigidBody) {
+                    return RE::BSVisit::BSVisitControl::kContinue;
+                }
+
+                RE::hkVector4 bodyPosition;
+                RE::hkQuaternion bodyRotation;
+                rigidBody->GetPosition(bodyPosition);
+                rigidBody->GetRotation(bodyRotation);
+
+                alignas(16) float position[4];
+                alignas(16) float rotation[4];
+                _mm_store_ps(position, bodyPosition.quad);
+                _mm_store_ps(rotation, bodyRotation.vec.quad);
+
+                const RE::NiPoint3 oldBodyPosition{
+                    position[0] * worldScaleInverse,
+                    position[1] * worldScaleInverse,
+                    position[2] * worldScaleInverse
+                };
+                const RE::NiPoint3 newBodyPosition =
+                    newTransform.translate +
+                    rotationDelta * (oldBodyPosition - oldTransform.translate);
+
+                const RE::NiQuaternion oldBodyRotation{
+                    rotation[3], rotation[0], rotation[1], rotation[2]};
+                const RE::NiMatrix3 newBodyRotation =
+                    rotationDelta * oldBodyRotation.ToRotation();
+                const RE::NiQuaternion newBodyQuaternion{newBodyRotation};
+
+                RE::hkVector4 havokPosition{
+                    newBodyPosition.x * worldScale,
+                    newBodyPosition.y * worldScale,
+                    newBodyPosition.z * worldScale,
+                    0.0f
+                };
+                RE::hkQuaternion havokRotation;
+                havokRotation.vec = RE::hkVector4{
+                    newBodyQuaternion.x,
+                    newBodyQuaternion.y,
+                    newBodyQuaternion.z,
+                    newBodyQuaternion.w
+                };
+                rigidBody->SetPositionAndRotation(havokPosition, havokRotation);
+
+                return RE::BSVisit::BSVisitControl::kContinue;
+            });
+    }
 }
 
 RE::ObjectRefHandle Placer::GetMoveHandle() {
@@ -434,11 +501,6 @@ void Placer::Move(const RE::ObjectRefHandle& handle) {
     initialCameraYaw = cameraData.first.z;
     appliedHorizontalAngle = 0.0f;
 
-    RE::NiAVObject* reference3D = ref->Get3D();
-    if (reference3D) {
-        refCollision = reference3D->GetCollisionLayer();
-    }
-
     BeginGroupMove();
 
     roomFormId = 0;
@@ -671,15 +733,11 @@ void Placer::BeginGroupMove() {
             selectedRef->GetAngle(),
             selectedRef->GetPosition(),
             selectedRef->GetAngle(),
-            {},
             false
         };
 
         RE::NiAVObject* selected3D = selectedRef->Get3D();
         if (selected3D) {
-            member.collisionLayer =
-                selectedRef == moveRef ? refCollision : selected3D->GetCollisionLayer();
-
             const Geometry geometry(selected3D);
             if (!geometry.Empty()) {
                 const std::pair<RE::NiPoint3, RE::NiPoint3> bounds =
@@ -747,9 +805,17 @@ void Placer::ApplyGroupTransform() {
             extractedAngle.z);
         member.currentAngle = -extractedAngle;
 
+        RE::NiAVObject* member3D = memberRef->Get3D();
+        const RE::NiTransform oldTransform =
+            member3D ? member3D->world : RE::NiTransform();
+        RE::NiTransform newTransform = oldTransform;
+        newTransform.translate = member.currentPosition;
+        newTransform.rotate.SetEulerAnglesXYZ(member.currentAngle);
+
         Transform::SetPosition(member.handle, member.currentPosition);
         Transform::SetAngle(member.handle, member.currentAngle);
-        if (memberRef->Is3DLoaded()) {
+        if (member3D) {
+            MoveCollisionBodies(member3D, oldTransform, newTransform);
             memberRef->Update3DPosition(true);
         }
         UpdateObjectRoom(member.handle);

@@ -8,7 +8,6 @@ class Placer {
         RE::NiPoint3 initialAngle;
         RE::NiPoint3 currentPosition;
         RE::NiPoint3 currentAngle;
-        RE::COL_LAYER collisionLayer;
         bool hasPlacementHighlight;
     };
 
@@ -25,7 +24,6 @@ class Placer {
     static inline float raycastDistance = 500.0f;
     static inline RE::ObjectRefHandle moveHandle;
     static inline bool inventorySource = false;
-    static inline RE::COL_LAYER refCollision;
     static RE::NiPoint3 Cast();
     static void Rotate();
     static void ClearHints();
