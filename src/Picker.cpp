@@ -207,8 +207,8 @@ void Picker::Tick() {
     const RE::ObjectRefHandle previousHoverHandle = GetLastHoverHandle();
     RE::ObjectRefHandle nextHoverHandle;
 
-    const auto result = Cast();
     if (!Placer::IsPlacing() && HUD::GetIsEnabled()) {
+        const auto result = Cast();
         if (result.hasHit && result.hitRef) {
             if (!previousHoverHandle || result.hitRef != previousHoverHandle) {
 #ifndef NDEBUG
