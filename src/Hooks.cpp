@@ -13,8 +13,11 @@
 #include "Transform.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
+#include <chrono>
 #include <mutex>
+#include <thread>
 
 namespace {
     std::string NormalizeModelPath(std::string_view path) {
@@ -175,33 +178,55 @@ namespace {
         static inline REL::Relocation<decltype(thunk)> originalFunction;
     };
 
-    struct UpdateHook
-    {
-        static void thunk()
-        {
+    struct UpdateLoop {
+        static constexpr std::chrono::milliseconds tickInterval{ 10 };
+
+        static void Tick() {
             DrawDebug::Clean();
             Picker::Tick();
             Placer::Tick();
-            originalFunction();
             Shader::ProcessPendingReferenceChanges();
             if (Menu::IsOpen()) {
                 HUD::OnMenuOpen();
-            }
-             else if (!Menu::IsOpen()) {
+            } else {
                 HUD::OnMenuClose();
             }
         }
 
+        static void QueueTick() {
+            if (tickPending.exchange(true)) {
+                return;
+            }
 
-        static inline REL::Relocation<decltype(thunk)> originalFunction;
+            const SKSE::TaskInterface* taskInterface = SKSE::GetTaskInterface();
+            if (!taskInterface) {
+                tickPending.store(false);
+                return;
+            }
 
-        static void Install()
-        {
-            SKSE::AllocTrampoline(14);
-            auto& trampoline = SKSE::GetTrampoline();
-            originalFunction = trampoline.write_call<5>(
-                REL::RelocationID(35565, 36564).address() + REL::Relocate(0x748, 0xc2b), thunk);
+            taskInterface->AddTask([]() {
+                Tick();
+                tickPending.store(false);
+            });
         }
+
+        static void Run(std::stop_token stopToken) {
+            while (!stopToken.stop_requested()) {
+                std::this_thread::sleep_for(tickInterval);
+                if (!stopToken.stop_requested()) {
+                    QueueTick();
+                }
+            }
+        }
+
+        static void Start() {
+            if (!worker.joinable()) {
+                worker = std::jthread(Run);
+            }
+        }
+
+        static inline std::atomic_bool tickPending = false;
+        static inline std::jthread worker;
     };
 
     struct NiAVObjectUpdateHook {
@@ -449,7 +474,6 @@ namespace {
 void Hooks::Install()
 {
     GroupModelHook::Install();
-    UpdateHook::Install();
     ProcessQueueHook::Install();
     RemoveItemHook::Install();
     LoadMiscItemHook::Install();
@@ -459,6 +483,7 @@ void Hooks::Install()
     InventoryHoverHook::Install();
     NiAVObjectUpdateHook::Install();
     ObjectReferenceRelease3DHook::Install();
+    UpdateLoop::Start();
 }
 
 bool Hooks::CacheGroupModel(const ObjectGroup::Data& group)
