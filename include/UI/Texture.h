@@ -9,6 +9,7 @@ private:
 
 public:
     static void Render(std::string path, ImVec2 position, ImVec2 size, ImColor color);
+    static ImTextureID GetTexture(std::string path, ImVec2 size = {});
     static void Init(ID3D11Device* device, ID3D11DeviceContext* context);
 };
 

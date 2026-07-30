@@ -1,119 +1,248 @@
 #include "Texture.h"
 
-#include <vector>
-
-#include "DirectXTK/WICTextureLoader.h"
-#include "DirectXTK/DDSTextureLoader.h"
-
-#include <string>
+#include <algorithm>
+#include <cmath>
 #include <codecvt>
 #include <locale>
+#include <string>
 #include <vector>
 
+#include "DirectXTK/DDSTextureLoader.h"
+#include "DirectXTK/WICTextureLoader.h"
+#include "nanosvg.h"
+#include "nanosvgrast.h"
+
 class TextureLoader {
-    static inline ID3D11Device* device = NULL;
-    static inline ID3D11DeviceContext* context = NULL;
+    static inline ID3D11Device* device = nullptr;
+    static inline ID3D11DeviceContext* context = nullptr;
+
+    static ID3D11ShaderResourceView* ReadSVG(NSVGimage* image, ImVec2 size);
 
 public:
     static void Init(ID3D11Device* device, ID3D11DeviceContext* context);
-    static ID3D11ShaderResourceView* LoadTextureFromDDSFile(std::string path);
-    static ID3D11ShaderResourceView* LoadTextureFromWICFile(std::string path);
+    static ID3D11ShaderResourceView* LoadTextureFromDDSFile(const std::string& path);
+    static ID3D11ShaderResourceView* LoadTextureFromWICFile(const std::string& path);
+    static ID3D11ShaderResourceView* LoadTextureFromSVGFile(const std::string& path, ImVec2 size);
 };
 
+namespace {
+    std::wstring ConvertToWString(const std::string& value) {
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+        return converter.from_bytes(value);
+    }
 
+    bool EndsWith(const std::string& value, const std::string& suffix) {
+        return suffix.size() <= value.size() &&
+            value.compare(value.size() - suffix.size(), suffix.size(), suffix) == 0;
+    }
 
+    ImTextureID LoadDDS(const std::string& imagePath) {
+        ID3D11ShaderResourceView* texture =
+            TextureLoader::LoadTextureFromDDSFile(imagePath);
+        return reinterpret_cast<ImTextureID>(texture);
+    }
 
-namespace File {
-    inline bool Exists(const wchar_t* filename) {
-        std::ifstream file(filename);
-        return file.good();
+    ImTextureID LoadWIC(const std::string& imagePath) {
+        ID3D11ShaderResourceView* texture =
+            TextureLoader::LoadTextureFromWICFile(imagePath);
+        return reinterpret_cast<ImTextureID>(texture);
+    }
+
+    ImTextureID LoadSVG(const std::string& imagePath, ImVec2 size) {
+        ID3D11ShaderResourceView* texture =
+            TextureLoader::LoadTextureFromSVGFile(imagePath, size);
+        return reinterpret_cast<ImTextureID>(texture);
+    }
+
+    ImTextureID LoadTextureAny(const std::string& imagePath, ImVec2 size) {
+        if (EndsWith(imagePath, ".dds")) {
+            return LoadDDS(imagePath);
+        }
+        if (EndsWith(imagePath, ".svg")) {
+            return LoadSVG(imagePath, size);
+        }
+        return LoadWIC(imagePath);
     }
 }
 
-ImTextureID LoadDDS(std::string imagePath) {
-    auto textureId = TextureLoader::LoadTextureFromDDSFile(imagePath);
-    return reinterpret_cast<ImTextureID>(textureId);
-}
-
-ImTextureID LoadWIC(std::string imagePath) {
-    auto textureId = TextureLoader::LoadTextureFromWICFile(imagePath);
-    return reinterpret_cast<ImTextureID>(textureId);
-}
-
-const wchar_t* convertToWChar(const std::string& str) {
-    static std::vector<wchar_t> wideStr;
-    wideStr.clear();
-
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wide = converter.from_bytes(str);
-    wideStr.assign(wide.begin(), wide.end());
-    wideStr.push_back(L'\0');
-    return wideStr.data();
-}
-
-bool endsWith(const std::string& str, const std::string& suffix) {
-    if (suffix.size() > str.size()) return false;
-    return str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
-}
-
-ImTextureID LoadTextureAny(std::string imagePath) {
-    if (endsWith(imagePath, ".dds")){
-        return LoadDDS(imagePath);
-    }
-    return LoadWIC(imagePath);
-}
-
-void TextureManager::Render(std::string texturePath, ImVec2 position, ImVec2 size, ImColor color) {
-
-    auto it = textures.find(texturePath);
-
-    ImTextureID textureId;
-    if (it != textures.end()) {
-        textureId = it->second;
-    } else {
-        textureId = LoadTextureAny(texturePath);
-        textures[texturePath] = textureId;
+ImTextureID TextureManager::GetTexture(std::string texturePath, ImVec2 size) {
+    std::string textureKey = texturePath;
+    if (EndsWith(texturePath, ".svg")) {
+        constexpr float snapFactor = 8.0f;
+        size.x = std::ceil(size.x / snapFactor) * snapFactor;
+        size.y = std::ceil(size.y / snapFactor) * snapFactor;
+        textureKey = std::format(
+            "{}-{}-{}",
+            texturePath,
+            static_cast<int>(size.x),
+            static_cast<int>(size.y));
     }
 
-    ImDrawList* draw_list = ImGui::GetForegroundDrawList();
-
-    draw_list->AddImage(textureId, position, {position.x+size.x, position.y+size.y}, {0, 0}, {1, 1}, color);
-}
-
-void TextureManager::Init(ID3D11Device* device, ID3D11DeviceContext* context) 
-{ TextureLoader::Init(device, context); }
-
-void TextureLoader::Init(ID3D11Device* a_device, ID3D11DeviceContext* a_context) {
-    device = a_device;
-    context = a_context;
-}
-
-ID3D11ShaderResourceView* TextureLoader::LoadTextureFromDDSFile(std::string path) {
-    if (!device || !context) return NULL;
-    auto wpath = convertToWChar(path);
-
-    if (!File::Exists(wpath)) {
-        return NULL;
+    const auto texture = textures.find(textureKey);
+    if (texture != textures.end()) {
+        return texture->second;
     }
 
-    ID3D11ShaderResourceView* texture;
-
-
-    DirectX::CreateDDSTextureFromFile(device, context, wpath, nullptr, &texture);
-
-    return texture;
+    const ImTextureID textureID = LoadTextureAny(texturePath, size);
+    if (textureID) {
+        textures[textureKey] = textureID;
+    }
+    return textureID;
 }
 
-ID3D11ShaderResourceView* TextureLoader::LoadTextureFromWICFile(std::string path) {
-    if (!device || !context) return NULL;
-    auto wpath = convertToWChar(path);
-
-    if (!File::Exists(wpath)) {
-        return NULL;
+void TextureManager::Render(
+    std::string texturePath,
+    ImVec2 position,
+    ImVec2 size,
+    ImColor color) {
+    const ImTextureID textureID = GetTexture(texturePath, size);
+    if (!textureID) {
+        return;
     }
 
-    ID3D11ShaderResourceView* texture;
-    DirectX::CreateWICTextureFromFile(device, context, wpath, nullptr, &texture);
+    ImDrawList* drawList = ImGui::GetForegroundDrawList();
+    drawList->AddImage(
+        textureID,
+        position,
+        {position.x + size.x, position.y + size.y},
+        {0.0f, 0.0f},
+        {1.0f, 1.0f},
+        color);
+}
 
-    return texture;
+void TextureManager::Init(
+    ID3D11Device* device,
+    ID3D11DeviceContext* context) {
+    TextureLoader::Init(device, context);
+}
+
+void TextureLoader::Init(
+    ID3D11Device* newDevice,
+    ID3D11DeviceContext* newContext) {
+    device = newDevice;
+    context = newContext;
+}
+
+ID3D11ShaderResourceView* TextureLoader::LoadTextureFromDDSFile(
+    const std::string& path) {
+    if (!device || !context) {
+        return nullptr;
+    }
+
+    const std::wstring widePath = ConvertToWString(path);
+    ID3D11ShaderResourceView* texture = nullptr;
+    const HRESULT result = DirectX::CreateDDSTextureFromFile(
+        device,
+        context,
+        widePath.c_str(),
+        nullptr,
+        &texture);
+    return SUCCEEDED(result) ? texture : nullptr;
+}
+
+ID3D11ShaderResourceView* TextureLoader::LoadTextureFromWICFile(
+    const std::string& path) {
+    if (!device || !context) {
+        return nullptr;
+    }
+
+    const std::wstring widePath = ConvertToWString(path);
+    ID3D11ShaderResourceView* texture = nullptr;
+    const HRESULT result = DirectX::CreateWICTextureFromFile(
+        device,
+        context,
+        widePath.c_str(),
+        nullptr,
+        &texture);
+    return SUCCEEDED(result) ? texture : nullptr;
+}
+
+ID3D11ShaderResourceView* TextureLoader::LoadTextureFromSVGFile(
+    const std::string& path,
+    ImVec2 size) {
+    NSVGimage* image = nsvgParseFromFile(path.c_str(), "px", 96.0f);
+    return ReadSVG(image, size);
+}
+
+ID3D11ShaderResourceView* TextureLoader::ReadSVG(
+    NSVGimage* image,
+    ImVec2 size) {
+    if (!image) {
+        return nullptr;
+    }
+    if (!device) {
+        nsvgDelete(image);
+        return nullptr;
+    }
+
+    if (size.x <= 0.0f) {
+        size.x = image->width;
+    }
+    if (size.y <= 0.0f) {
+        size.y = image->height;
+    }
+
+    const int width = std::max(1, static_cast<int>(std::ceil(size.x)));
+    const int height = std::max(1, static_cast<int>(std::ceil(size.y)));
+    NSVGrasterizer* rasterizer = nsvgCreateRasterizer();
+    if (!rasterizer) {
+        nsvgDelete(image);
+        return nullptr;
+    }
+
+    std::vector<unsigned char> pixels(
+        static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 4);
+    const float scale = std::min(
+        size.x / image->width,
+        size.y / image->height);
+    const float offsetX = (static_cast<float>(width) - image->width * scale) * 0.5f;
+    const float offsetY = (static_cast<float>(height) - image->height * scale) * 0.5f;
+    nsvgRasterize(
+        rasterizer,
+        image,
+        offsetX,
+        offsetY,
+        scale,
+        pixels.data(),
+        width,
+        height,
+        width * 4);
+    nsvgDeleteRasterizer(rasterizer);
+    nsvgDelete(image);
+
+    D3D11_TEXTURE2D_DESC textureDescription{};
+    textureDescription.Width = static_cast<UINT>(width);
+    textureDescription.Height = static_cast<UINT>(height);
+    textureDescription.MipLevels = 1;
+    textureDescription.ArraySize = 1;
+    textureDescription.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    textureDescription.SampleDesc.Count = 1;
+    textureDescription.Usage = D3D11_USAGE_DEFAULT;
+    textureDescription.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA textureData{};
+    textureData.pSysMem = pixels.data();
+    textureData.SysMemPitch = static_cast<UINT>(width * 4);
+
+    ID3D11Texture2D* texture = nullptr;
+    HRESULT result = device->CreateTexture2D(
+        &textureDescription,
+        &textureData,
+        &texture);
+    if (FAILED(result)) {
+        return nullptr;
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC viewDescription{};
+    viewDescription.Format = textureDescription.Format;
+    viewDescription.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    viewDescription.Texture2D.MipLevels = 1;
+
+    ID3D11ShaderResourceView* textureView = nullptr;
+    result = device->CreateShaderResourceView(
+        texture,
+        &viewDescription,
+        &textureView);
+    texture->Release();
+    return SUCCEEDED(result) ? textureView : nullptr;
 }

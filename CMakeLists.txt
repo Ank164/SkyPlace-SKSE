@@ -109,6 +109,7 @@ target_include_directories(
 )
 
 find_package(imgui CONFIG REQUIRED)
+find_package(NanoSVG REQUIRED)
 find_path(DETOURS_INCLUDE_DIRS "detours/detours.h")
 find_library(DETOURS_LIBRARY detours REQUIRED)
 find_library(DIRECTXTK_LIBRARY NAMES DirectXTK PATHS ${CMAKE_BINARY_DIR}/debug/vcpkg_installed/x64-windows-static/lib)
@@ -116,6 +117,8 @@ target_link_libraries(
 	${PROJECT_NAME}
 	PRIVATE
 		imgui::imgui
+         NanoSVG::nanosvg
+         NanoSVG::nanosvgrast
          ${DIRECTXTK_LIBRARY}
          ${DETOURS_LIBRARY}
 )

@@ -9,6 +9,7 @@
 #include "SkyPlaceCursorMenu.h"
 #include "SkyPlaceConfig.h"
 #include "Graphics.h"
+#include "SlicedWindow.h"
 
 #define PLACE_PLACE_BUTTON 1
 #define PLACE_PICK_BUTTON 2
@@ -328,7 +329,7 @@ void RenderTransformMenu() {
         ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoSavedSettings;
 
-    if (ImGui::Begin(windowTitle.c_str(), nullptr, windowFlags)) {
+    if (SlicedWindow::Begin(windowTitle.c_str(), windowFlags)) {
         constexpr float buttonWidth = 360.0f;
         const ImVec2 buttonSize(buttonWidth, 0.0f);
         constexpr float fullWidth = buttonWidth;
@@ -382,7 +383,7 @@ void RenderTransformMenu() {
             SetTransformMode(false, true);
         }
     }
-    ImGui::End();
+    SlicedWindow::End();
 }
 
 void SkyPromptClient::Install() {
