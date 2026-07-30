@@ -16,7 +16,7 @@
   "TransformMenu.Scale": "Uniforme",
   "TransformMenu.Controls.Section": "Controles",
   "TransformMenu.Controls.Select": "Clique: selecionar uma opção",
-  "TransformMenu.Controls.Cycle": "Direcional para cima / baixo ou roda do mouse: alternar opções",
+  "TransformMenu.Controls.Cycle": "Direcional para cima / baixo ou roda do mouse: \n alternar opções",
   "TransformMenu.Controls.Close": "{}: fechar menu",
   "TransformMenu.Exit.Section": "Opções",
   "TransformMenu.Exit": "Sair",
