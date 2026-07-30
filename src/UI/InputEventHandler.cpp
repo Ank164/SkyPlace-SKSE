@@ -12,13 +12,11 @@ bool InputEventHandler::InputEvent(RE::InputEvent* event) {
     return result;
 }
 
-RE::InputEvent* const* InputEventHandler::Process(RE::InputEvent* const* a_event) { 
+RE::InputEvent* InputEventHandler::Process(RE::InputEvent* a_event) {
+    RE::InputEvent* first = a_event;
+    RE::InputEvent* last = a_event;
 
-    auto first = *a_event;
-    auto last = *a_event;
-    size_t length = 0;
-
-    for (auto current = *a_event; current; current = current->next) {
+    for (RE::InputEvent* current = a_event; current; current = current->next) {
         if (InputEvent(current)) {
             if (current != last) {
                 last->next = current->next;
@@ -28,12 +26,10 @@ RE::InputEvent* const* InputEventHandler::Process(RE::InputEvent* const* a_event
             }
         } else {
             last = current;
-            ++length;
         }
     }
 
-    RE::InputEvent* const e[] = {first};
-    return e;
+    return first;
 }
 
 

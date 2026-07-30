@@ -8,6 +8,6 @@ class InputEventHandler {
     static inline bool middleButtonDown = false;
     static bool InputEvent(RE::InputEvent* event);
 public:
-    static RE::InputEvent* const* Process(RE::InputEvent* const* a_event);
+    static RE::InputEvent* Process(RE::InputEvent* a_event);
     static void Register(InputEventCallback callback);
 };

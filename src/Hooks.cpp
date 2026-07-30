@@ -279,7 +279,13 @@ namespace {
     {
         static void thunk(RE::BSTEventSource<RE::InputEvent*>* a_dispatcher, RE::InputEvent* const* a_event)
         {
-            originalFunction(a_dispatcher, InputEventHandler::Process(a_event));
+            if (!a_event) {
+                originalFunction(a_dispatcher, a_event);
+                return;
+            }
+
+            RE::InputEvent* filteredEvent = InputEventHandler::Process(*a_event);
+            originalFunction(a_dispatcher, std::addressof(filteredEvent));
         }
 
         static inline REL::Relocation<decltype(thunk)> originalFunction;
