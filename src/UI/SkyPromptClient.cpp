@@ -114,7 +114,7 @@ enum class TransformMode {
 
 bool isTransformMode = false;
 bool isTransformDragging = false;
-TransformMode transformMode = TransformMode::kTranslationDepth;
+TransformMode transformMode = TransformMode::kRotationHorizontal;
 bool isEnabled = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
@@ -284,7 +284,7 @@ void SetTransformMode(bool value, bool showPlacementPrompts) {
 
     SkyPlaceCursorMenu::SetOpen(value);
     if (value) {
-        transformMode = TransformMode::kTranslationDepth;
+        transformMode = TransformMode::kRotationHorizontal;
         HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
         if (placeSink) {
             placeSink->Hide();
@@ -411,6 +411,24 @@ void RenderTransformMenu() {
         const ImVec2 buttonSize(buttonWidth, 0.0f);
         constexpr float fullWidth = buttonWidth;
 
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Rotation"));
+        RenderModeButton(
+            "TransformMenu.Rotation.Horizontal",
+            "RotationHorizontal",
+            TransformMode::kRotationHorizontal,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Rotation.Vertical",
+            "RotationVertical",
+            TransformMode::kRotationVertical,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Rotation.Free",
+            "RotationFree",
+            TransformMode::kRotationFree,
+            buttonSize);
+
+        ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Translation"));
         RenderModeButton(
             "TransformMenu.Translation.UpDown",
@@ -431,24 +449,6 @@ void RenderTransformMenu() {
             "TransformMenu.Translation.Depth",
             "TranslationDepth",
             TransformMode::kTranslationDepth,
-            buttonSize);
-
-        ImGui::Separator();
-        ImGui::TextUnformatted(Translations::Get("TransformMenu.Rotation"));
-        RenderModeButton(
-            "TransformMenu.Rotation.Horizontal",
-            "RotationHorizontal",
-            TransformMode::kRotationHorizontal,
-            buttonSize);
-        RenderModeButton(
-            "TransformMenu.Rotation.Vertical",
-            "RotationVertical",
-            TransformMode::kRotationVertical,
-            buttonSize);
-        RenderModeButton(
-            "TransformMenu.Rotation.Free",
-            "RotationFree",
-            TransformMode::kRotationFree,
             buttonSize);
 
         ImGui::Separator();
