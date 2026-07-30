@@ -26,8 +26,6 @@ namespace {
     constexpr float defaultRaycastDistance = 500.0f;
     constexpr float minimumRaycastDistance = 10.0f;
     constexpr float maximumRaycastDistance = 5000.0f;
-    constexpr float minimumGroupScale = 0.1f;
-    constexpr float maximumGroupScale = 10.0f;
 
     void DrawWorldBoundingBox(
         const std::pair<RE::NiPoint3, RE::NiPoint3>& bounds) {
@@ -297,10 +295,7 @@ void Placer::ScaleEvent(RE::NiPoint2 delta) {
         return;
     }
 
-    groupScale = std::clamp(
-        groupScale * std::exp(-delta.y * 0.005f),
-        minimumGroupScale,
-        maximumGroupScale);
+    groupScale *= std::exp(-delta.y * 0.005f);
 }
 
 void Placer::PickEvent() {
