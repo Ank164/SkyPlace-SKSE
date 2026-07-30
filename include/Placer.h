@@ -63,6 +63,7 @@ public:
     static void PlaceEvent();
     static void TranslateUpDownEvent(RE::NiPoint2 delta);
     static void TranslateLeftRightEvent(RE::NiPoint2 delta);
+    static void TranslateForwardBackwardEvent(RE::NiPoint2 delta);
     static void TranslateDepthEvent(RE::NiPoint2 delta);
     static void SetRaycastDistanceFromCurrentPosition();
     static void OrbitRotateEvent(RE::NiPoint2 delta);

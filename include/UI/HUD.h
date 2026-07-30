@@ -6,6 +6,7 @@ enum MenuEvent {
     kPlacePlaceAccepted,
     kPlaceTranslateUpDown,
     kPlaceTranslateLeftRight,
+    kPlaceTranslateForwardBackward,
     kPlaceTranslateDepth,
     kPlaceSetRaycastDistance,
     kPlaceOrbitRotate,

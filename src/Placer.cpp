@@ -235,6 +235,10 @@ void Placer::TranslateLeftRightEvent(RE::NiPoint2 delta) {
     Translate({delta.x * 0.1f, 0.0f, 0.0f});
 }
 
+void Placer::TranslateForwardBackwardEvent(RE::NiPoint2 delta) {
+    Translate({0.0f, -delta.y * 0.1f, 0.0f});
+}
+
 void Placer::TranslateDepthEvent(RE::NiPoint2 delta) {
     raycastDistance = std::clamp(
         raycastDistance - delta.y * 0.5f,

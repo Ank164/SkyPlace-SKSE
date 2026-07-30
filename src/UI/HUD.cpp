@@ -113,6 +113,9 @@ void HUD::ProcessEvent(MenuEvent event, RE::NiPoint2 delta) {
         case kPlaceTranslateLeftRight:
             Placer::TranslateLeftRightEvent(delta);
             break;
+        case kPlaceTranslateForwardBackward:
+            Placer::TranslateForwardBackwardEvent(delta);
+            break;
         case kPlaceTranslateDepth:
             Placer::TranslateDepthEvent(delta);
             break;

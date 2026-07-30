@@ -6,6 +6,7 @@
   "TransformMenu.Translation": "Translação",
   "TransformMenu.Translation.UpDown": "Cima / Baixo",
   "TransformMenu.Translation.LeftRight": "Esquerda / Direita",
+  "TransformMenu.Translation.ForwardBackward": "Frente / Trás",
   "TransformMenu.Translation.Depth": "Mais perto / Mais longe",
   "TransformMenu.Rotation": "Rotação",
   "TransformMenu.Rotation.Horizontal": "Horizontal",

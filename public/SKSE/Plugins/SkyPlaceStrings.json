@@ -6,6 +6,7 @@
   "TransformMenu.Translation": "Translate",
   "TransformMenu.Translation.UpDown": "Up / Down",
   "TransformMenu.Translation.LeftRight": "Left / Right",
+  "TransformMenu.Translation.ForwardBackward": "Forward / Backward",
   "TransformMenu.Translation.Depth": "Closer / Further",
   "TransformMenu.Rotation": "Rotate",
   "TransformMenu.Rotation.Horizontal": "Horizontal",

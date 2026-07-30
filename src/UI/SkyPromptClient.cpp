@@ -104,6 +104,7 @@ SkyPromptAPI::ClientID clientID = 0;
 enum class TransformMode {
     kTranslationUpDown,
     kTranslationLeftRight,
+    kTranslationForwardBackward,
     kTranslationDepth,
     kRotationHorizontal,
     kRotationVertical,
@@ -230,6 +231,10 @@ void ProcessTransformDelta(const RE::NiPoint2 delta) {
         case TransformMode::kTranslationLeftRight:
             constrainedDelta.x = delta.x;
             event = MenuEvent::kPlaceTranslateLeftRight;
+            break;
+        case TransformMode::kTranslationForwardBackward:
+            constrainedDelta.y = delta.y;
+            event = MenuEvent::kPlaceTranslateForwardBackward;
             break;
         case TransformMode::kTranslationDepth:
             constrainedDelta.y = delta.y;
@@ -416,6 +421,11 @@ void RenderTransformMenu() {
             "TransformMenu.Translation.LeftRight",
             "TranslationLeftRight",
             TransformMode::kTranslationLeftRight,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Translation.ForwardBackward",
+            "TranslationForwardBackward",
+            TransformMode::kTranslationForwardBackward,
             buttonSize);
         RenderModeButton(
             "TransformMenu.Translation.Depth",
