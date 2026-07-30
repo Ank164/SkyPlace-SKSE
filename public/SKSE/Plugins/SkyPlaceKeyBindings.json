@@ -27,7 +27,7 @@
     },
     {
       "device": "gamepad",
-      "key": "lefttrigger"
+      "key": "righttrigger"
     }
   ],
   "SkyPrompt.Place.Pick": [
@@ -37,7 +37,7 @@
     },
     {
       "device": "gamepad",
-      "key": "righttrigger"
+      "key": "lefttrigger"
     }
   ],
   "SkyPrompt.Place.Transform": [
