@@ -365,7 +365,8 @@ void Placer::Tick() {
     ProcessPendingMaterializedMove();
 
     std::unique_lock lock(mtx);
-    if (GetMoveHandle() &&
+    const bool isPlacing = static_cast<bool>(GetMoveHandle());
+    if (isPlacing &&
         !Menu::IsOpen() &&
         RayCast::IsGameplayCameraActive()) {
         currentRaycastPosition = Cast();
@@ -375,6 +376,11 @@ void Placer::Tick() {
         PreventFloorClipping();
         ApplyGroupTransform();
         ShowGroupPlacementHighlights();
+    }
+    lock.unlock();
+
+    if (isPlacing) {
+        HUD::ShowPlace();
     }
 }
 float ComputeScaleForTargetVolume(RE::NiPoint3 min, RE::NiPoint3 max, float scale, float targetVolume) {

@@ -115,11 +115,14 @@ bool isEnabled = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
 public:
-    void Show() { SkyPromptAPI::SendPrompt(this, clientID); }
+    void Show() { isShowing = SkyPromptAPI::SendPrompt(this, clientID); }
 
     void Hide() {
+        isShowing = false;
         SkyPromptAPI::RemovePrompt(this, clientID);
     }
+
+    bool IsShowing() const { return isShowing; }
 
     PlaceSink() { set = ButtonSetPlace(); };
 
@@ -128,6 +131,9 @@ public:
     void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
+
+private:
+    bool isShowing = false;
 };
 
 class PickSink final : public SkyPromptAPI::PromptSink {
@@ -255,6 +261,11 @@ void ProcessTransformDelta(const RE::NiPoint2 delta) {
 }
 
 void SetTransformMode(bool value, bool showPlacementPrompts) {
+
+    if (isTransformMode == value) {
+        return;
+    }
+
     const bool wasTransformMode = isTransformMode;
     isTransformMode = value;
     isTransformDragging = false;
@@ -401,10 +412,12 @@ std::vector<std::string> map = {"kAccepted", "kDeclined", "kRemovedByMod", "kTim
 
 void PlaceSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
     if (event.type == SkyPromptAPI::PromptEventType::kTimeout) {
+        isShowing = false;
         Show();
         return;
     }
     if (event.type == SkyPromptAPI::PromptEventType::kDeclined || event.type == SkyPromptAPI::PromptEventType::kRemovedByMod) {
+        isShowing = false;
         HUD::ProcessEvent(MenuEvent::kPlacerClose);
         Hide();
         return;
@@ -551,6 +564,13 @@ void SkyPromptClient::ShowPlace() {
     }
     SetTransformMode(false, false);
     pickSink->Hide();
+    placeSink->Show();
+}
+
+void SkyPromptClient::EnsurePlace() {
+    if (!placeSink || !clientID || isTransformMode || placeSink->IsShowing()) {
+        return;
+    }
     placeSink->Show();
 }
 
