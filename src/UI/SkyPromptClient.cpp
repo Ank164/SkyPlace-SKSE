@@ -1,4 +1,8 @@
 #include "SkyPromptClient.h"
+
+#include <algorithm>
+#include <array>
+
 #include "HUD.h"
 #include "InputConfig.h"
 #include "SkyPromptAPI.h"
@@ -111,6 +115,16 @@ enum class TransformMode {
     kRotationFree,
     kScale
 };
+
+constexpr std::array transformModeOrder{
+    TransformMode::kRotationHorizontal,
+    TransformMode::kRotationVertical,
+    TransformMode::kRotationFree,
+    TransformMode::kTranslationUpDown,
+    TransformMode::kTranslationLeftRight,
+    TransformMode::kTranslationForwardBackward,
+    TransformMode::kTranslationDepth,
+    TransformMode::kScale};
 
 bool isTransformMode = false;
 bool isTransformDragging = false;
@@ -294,6 +308,30 @@ void SetTransformMode(bool value, bool showPlacementPrompts) {
     }
 }
 
+void SetSelectedTransformMode(TransformMode mode) {
+    transformMode = mode;
+    isTransformDragging = false;
+    if (mode == TransformMode::kTranslationDepth) {
+        HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
+    }
+}
+
+void CycleTransformMode(bool forward) {
+    const auto current = std::find(
+        transformModeOrder.begin(),
+        transformModeOrder.end(),
+        transformMode);
+    std::size_t index = current == transformModeOrder.end() ? 0 :
+        static_cast<std::size_t>(std::distance(transformModeOrder.begin(), current));
+
+    if (forward) {
+        index = (index + 1) % transformModeOrder.size();
+    } else {
+        index = (index + transformModeOrder.size() - 1) % transformModeOrder.size();
+    }
+    SetSelectedTransformMode(transformModeOrder[index]);
+}
+
 bool RenderTransformButton(
     const char* label,
     const char* id,
@@ -376,11 +414,7 @@ bool RenderModeButton(
         size);
 
     if (pressed) {
-        transformMode = mode;
-        isTransformDragging = false;
-        if (mode == TransformMode::kTranslationDepth) {
-            HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
-        }
+        SetSelectedTransformMode(mode);
     }
     return pressed;
 }
@@ -395,6 +429,10 @@ void RenderTransformMenu() {
         ImVec2(io.DisplaySize.x - 40.0f, io.DisplaySize.y * 0.5f),
         ImGuiCond_Always,
         ImVec2(1.0f, 0.5f));
+    constexpr float windowWidth = 480.0f;
+    ImGui::SetNextWindowSizeConstraints(
+        ImVec2(windowWidth, 0.0f),
+        ImVec2(windowWidth, io.DisplaySize.y));
 
     const std::string windowTitle = std::format(
         "{}###SkyPlaceTransformMenu",
@@ -407,9 +445,8 @@ void RenderTransformMenu() {
         ImGuiWindowFlags_NoSavedSettings;
 
     if (SlicedWindow::Begin(windowTitle.c_str(), windowFlags)) {
-        constexpr float buttonWidth = 360.0f;
-        const ImVec2 buttonSize(buttonWidth, 0.0f);
-        constexpr float fullWidth = buttonWidth;
+        const float fullWidth = ImGui::GetContentRegionAvail().x;
+        const ImVec2 buttonSize(fullWidth, 0.0f);
 
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Rotation"));
         RenderModeButton(
@@ -468,6 +505,23 @@ void RenderTransformMenu() {
                 ImVec2(fullWidth, 0.0f))) {
             SetTransformMode(false, true);
         }
+
+        ImGui::Separator();
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Controls.Section"));
+        ImGui::PushTextWrapPos(0.0f);
+        ImGui::BulletText(
+            "%s",
+            Translations::Get("TransformMenu.Controls.Select"));
+        ImGui::BulletText(
+            "%s",
+            Translations::Get("TransformMenu.Controls.Cycle"));
+        std::string transformBindingLabel =
+            InputConfig::GetBindingLabel("SkyPrompt.Place.Transform");
+        const std::string closeTip = std::vformat(
+            Translations::Get("TransformMenu.Controls.Close"),
+            std::make_format_args(transformBindingLabel));
+        ImGui::BulletText("%s", closeTip.c_str());
+        ImGui::PopTextWrapPos();
     }
     SlicedWindow::End();
 }
@@ -566,8 +620,44 @@ bool SkyPromptClient::GetIsEnabled() { return isEnabled; }
 bool SkyPromptClient::OnInput(RE::InputEvent* event) {
     if (event) {
         if (isTransformMode) {
-            if (RE::ButtonEvent* button = event->AsButtonEvent();
-                button && event->GetDevice() == RE::INPUT_DEVICE::kMouse) {
+            RE::ButtonEvent* button = event->AsButtonEvent();
+            if (button && InputConfig::IsActivated(
+                    "SkyPrompt.Place.Transform",
+                    event)) {
+                SetTransformMode(false, false);
+                QueuePlacePromptRefresh();
+                return true;
+            }
+
+            if (button && button->IsDown() &&
+                event->GetDevice() == RE::INPUT_DEVICE::kGamepad) {
+                const std::uint32_t key = button->GetIDCode();
+                if (key == static_cast<std::uint32_t>(
+                        RE::BSWin32GamepadDevice::Key::kUp)) {
+                    CycleTransformMode(false);
+                    return true;
+                }
+                if (key == static_cast<std::uint32_t>(
+                        RE::BSWin32GamepadDevice::Key::kDown)) {
+                    CycleTransformMode(true);
+                    return true;
+                }
+            }
+
+            if (button && event->GetDevice() == RE::INPUT_DEVICE::kMouse) {
+                if (button->IsDown()) {
+                    const std::uint32_t key = button->GetIDCode();
+                    if (key == static_cast<std::uint32_t>(
+                            RE::BSWin32MouseDevice::Key::kWheelUp)) {
+                        CycleTransformMode(false);
+                        return true;
+                    }
+                    if (key == static_cast<std::uint32_t>(
+                            RE::BSWin32MouseDevice::Key::kWheelDown)) {
+                        CycleTransformMode(true);
+                        return true;
+                    }
+                }
                 if (button->GetIDCode() == RE::BSWin32MouseDevice::Key::kLeftButton) {
                     if (ImGui::GetCurrentContext()) {
                         ImGui::GetIO().AddMouseButtonEvent(
