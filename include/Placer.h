@@ -61,6 +61,7 @@ public:
     static void Translate(RE::NiPoint3 offset);
 
     static void PlaceEvent();
+    static void FixInPlaceEvent();
     static void TranslateUpDownEvent(RE::NiPoint2 delta);
     static void TranslateLeftRightEvent(RE::NiPoint2 delta);
     static void TranslateForwardBackwardEvent(RE::NiPoint2 delta);

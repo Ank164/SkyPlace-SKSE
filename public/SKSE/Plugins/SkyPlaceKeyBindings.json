@@ -50,6 +50,16 @@
       "key": "a"
     }
   ],
+  "SkyPrompt.Place.FixInPlace": [
+    {
+      "device": "mouse",
+      "key": "middlebutton"
+    },
+    {
+      "device": "gamepad",
+      "key": "leftshoulder"
+    }
+  ],
   "SkyPrompt.Pick.Pick": [
     {
       "device": "mouse",

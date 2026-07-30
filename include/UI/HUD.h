@@ -4,6 +4,7 @@ enum MenuEvent {
     kPlacerClose,
     kPlacePickAccepted,
     kPlacePlaceAccepted,
+    kPlaceFixInPlaceAccepted,
     kPlaceTranslateUpDown,
     kPlaceTranslateLeftRight,
     kPlaceTranslateForwardBackward,

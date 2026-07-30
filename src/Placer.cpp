@@ -27,6 +27,49 @@ namespace {
     constexpr float minimumRaycastDistance = 10.0f;
     constexpr float maximumRaycastDistance = 5000.0f;
 
+    bool IsFixableMotionType(RE::hkpMotion::MotionType motionType) {
+        return motionType == RE::hkpMotion::MotionType::kDynamic ||
+            motionType == RE::hkpMotion::MotionType::kSphereInertia ||
+            motionType == RE::hkpMotion::MotionType::kBoxInertia;
+    }
+
+    void FixDynamicBodiesInPlace(RE::TESObjectREFR* ref) {
+        RE::NiAVObject* root = ref ? ref->Get3D() : nullptr;
+        if (!root) {
+            return;
+        }
+
+        std::vector<RE::NiAVObject*> objectsToFix;
+        RE::BSVisit::TraverseScenegraphCollision(
+            root,
+            [&](RE::bhkNiCollisionObject* collisionObject) {
+                RE::bhkRigidBody* rigidBody =
+                    collisionObject && collisionObject->body ?
+                        collisionObject->body->AsBhkRigidBody() : nullptr;
+                RE::hkpRigidBody* havokBody =
+                    rigidBody ? rigidBody->GetRigidBody() : nullptr;
+                if (havokBody &&
+                    IsFixableMotionType(havokBody->motion.type.get()) &&
+                    collisionObject->sceneObject)
+                {
+                    objectsToFix.push_back(collisionObject->sceneObject);
+                }
+                return RE::BSVisit::BSVisitControl::kContinue;
+            });
+
+        bool changed = false;
+        for (RE::NiAVObject* object : objectsToFix) {
+            changed |= object->SetMotionType(
+                RE::hkpMotion::MotionType::kKeyframed,
+                false,
+                false,
+                true);
+        }
+        if (changed) {
+            ref->AddChange(RE::TESObjectREFR::ChangeFlags::kHavokMoved);
+        }
+    }
+
     void DrawWorldBoundingBox(
         const std::pair<RE::NiPoint3, RE::NiPoint3>& bounds) {
         const RE::NiPoint3& minimum = bounds.first;
@@ -219,6 +262,27 @@ void Placer::ClearHints() {
 void Placer::PlaceEvent() {
     std::unique_lock lock(mtx);
     FinishGroupMove(false);
+    Picker::ShowSelectionHighlights();
+    ClearHints();
+    moveHandle.reset();
+    inventorySource = false;
+}
+
+void Placer::FixInPlaceEvent() {
+    std::unique_lock lock(mtx);
+
+    std::vector<RE::ObjectRefHandle> handles;
+    handles.reserve(groupMembers.size());
+    for (const GroupMember& member : groupMembers) {
+        handles.push_back(member.handle);
+    }
+
+    FinishGroupMove(false);
+    for (const RE::ObjectRefHandle& handle : handles) {
+        const RE::NiPointer<RE::TESObjectREFR> ref = handle.get();
+        FixDynamicBodiesInPlace(ref.get());
+    }
+
     Picker::ShowSelectionHighlights();
     ClearHints();
     moveHandle.reset();

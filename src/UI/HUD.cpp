@@ -107,6 +107,9 @@ void HUD::ProcessEvent(MenuEvent event, RE::NiPoint2 delta) {
         case kPlacePlaceAccepted:
             Placer::PlaceEvent();
             break;
+        case kPlaceFixInPlaceAccepted:
+            Placer::FixInPlaceEvent();
+            break;
         case kPlaceTranslateUpDown:
             Placer::TranslateUpDownEvent(delta);
             break;

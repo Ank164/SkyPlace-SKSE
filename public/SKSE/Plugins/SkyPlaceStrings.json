@@ -2,6 +2,7 @@
   "SkyPrompt.Place.Place": "Place",
   "SkyPrompt.Place.Pick": "Pick",
   "SkyPrompt.Place.Transform": "Transform",
+  "SkyPrompt.Place.FixInPlace": "Fix in Place",
   "TransformMenu.Title": "Transform Object",
   "TransformMenu.Translation": "Translate",
   "TransformMenu.Translation.UpDown": "Up / Down",

@@ -21,6 +21,7 @@
 #define PLACE_PLACE_BUTTON 1
 #define PLACE_PICK_BUTTON 2
 #define PLACE_TRANSFORM_BUTTON 3
+#define PLACE_FIX_IN_PLACE_BUTTON 4
 #define PICK_MOVE_BUTTON 5
 #define PICK_PICK_BUTTON 6
 #define PICK_TOGGLE_SELECTION_BUTTON 10
@@ -79,10 +80,12 @@ struct ButtonSetPlace {
     std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons1 = InputConfig::Get("SkyPrompt.Place.Place");
     std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons2 = InputConfig::Get("SkyPrompt.Place.Pick");
     std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons3 = InputConfig::Get("SkyPrompt.Place.Transform");
+    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons4 = InputConfig::Get("SkyPrompt.Place.FixInPlace");
 
     promptList prompts = {SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Place"), PLACE_PLACE_BUTTON, 0, SkyPromptAPI::PromptType::kHold, 0, buttons1, 0xFFFFFFFF),
                           SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Pick"), PLACE_PICK_BUTTON, 0, SkyPromptAPI::PromptType::kHold, 0, buttons2, 0xFFFFFFFF),
-                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Transform"), PLACE_TRANSFORM_BUTTON, 0, SkyPromptAPI::PromptType::kSinglePress, 0, buttons3, 0xFFFFFFFF)};
+                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Transform"), PLACE_TRANSFORM_BUTTON, 0, SkyPromptAPI::PromptType::kSinglePress, 0, buttons3, 0xFFFFFFFF),
+                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.FixInPlace"), PLACE_FIX_IN_PLACE_BUTTON, 0, SkyPromptAPI::PromptType::kHold, 0, buttons4, 0xFFFFFFFF)};
 };
 
 struct ButtonSetPick {
@@ -673,6 +676,10 @@ void PlaceSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
             case PLACE_PLACE_BUTTON:
                 Hide();
                 QueueHUDProcessEvent(MenuEvent::kPlacePlaceAccepted);
+                return;
+            case PLACE_FIX_IN_PLACE_BUTTON:
+                Hide();
+                QueueHUDProcessEvent(MenuEvent::kPlaceFixInPlaceAccepted);
                 return;
             case PLACE_TRANSFORM_BUTTON:
                 SetTransformMode(true, false);
