@@ -1,6 +1,71 @@
 #include "Graphics.h"
+
+#include <algorithm>
+#include <array>
+
 #include "SkyPlaceCursorMenu.h"
 #include "Texture.h"
+
+namespace {
+    constexpr float referenceHeight = 1080.0f;
+    constexpr float referenceFontSize = 40.0f;
+    constexpr ImWchar fontAwesomeGlyphRanges[] = {0xe005, 0xf8ff, 0};
+    constexpr std::array fontAwesomePaths{
+        "Data/SKSE/Plugins/SkyPlaceAssets/fa-solid-900.ttf",
+        "Data/SKSE/Plugins/SkyPlaceAssets/fa-regular-400.ttf",
+        "Data/SKSE/Plugins/SkyPlaceAssets/fa-brands-400.ttf"};
+
+    ImFont* LoadFont(ImGuiIO& io, float fontSize, bool mergeFontAwesome) {
+        ImFontConfig fontConfig{};
+        fontConfig.PixelSnapH = true;
+        ImFont* font = io.Fonts->AddFontFromFileTTF(
+            "Data/Interface/SkyrimMenuFont.ttf",
+            fontSize,
+            &fontConfig);
+        if (!font) {
+            logger::warn(
+                "Could not load SkyrimMenuFont.ttf at {} px; using the ImGui default font",
+                fontSize);
+            font = io.Fonts->AddFontDefault();
+        }
+
+        if (!mergeFontAwesome) {
+            return font;
+        }
+
+        ImFontConfig mergeConfig{};
+        mergeConfig.MergeMode = true;
+        mergeConfig.PixelSnapH = true;
+        for (const char* path : fontAwesomePaths) {
+            if (!io.Fonts->AddFontFromFileTTF(
+                    path,
+                    fontSize,
+                    &mergeConfig,
+                    fontAwesomeGlyphRanges)) {
+                logger::warn("Could not merge Font Awesome font '{}'", path);
+            }
+        }
+        return font;
+    }
+
+    ImFont* LoadResponsiveFont(ImGuiIO& io) {
+        const RE::BSGraphics::ScreenSize screenSize =
+            RE::BSGraphics::Renderer::GetScreenSize();
+        const float resolutionScale = screenSize.height > 0 ?
+            std::max(
+                static_cast<float>(screenSize.height) / referenceHeight,
+                0.01f) :
+            1.0f;
+        const float fontSize = referenceFontSize * resolutionScale;
+
+        logger::info(
+            "Loading responsive Font Awesome UI font at {} px for {}x{}",
+            fontSize,
+            screenSize.width,
+            screenSize.height);
+        return LoadFont(io, fontSize, true);
+    }
+}
 
 void Graphics::Install() {
     DrawHook::Install();
@@ -49,8 +114,8 @@ void Graphics::CreateD3DAndSwapChain::thunk() {
         io.IniFilename = nullptr;
         io.MouseDrawCursor = false;
 
-        ImFont* font = io.Fonts->AddFontFromFileTTF("Data/Interface/SkyrimMenuFont.ttf", 40.0f);
-        io.FontDefault = font;
+        io.FontDefault = LoadFont(io, referenceFontSize, false);
+        transformMenuFont = LoadResponsiveFont(io);
 
         if (!ImGui_ImplWin32_Init(desc.OutputWindow)) {
             logger::error("ImGui initialization failed (Win32)");
@@ -141,6 +206,10 @@ float Graphics::GetResolutionScale() {
 
 void Graphics::Register(std::function<void()> drawFunction) {
     drawFunctions.push_back(drawFunction);
+}
+
+ImFont* Graphics::GetTransformMenuFont() {
+    return transformMenuFont;
 }
 
 ImVec2 WorldToScreenLoc(RE::NiPoint3 position) {

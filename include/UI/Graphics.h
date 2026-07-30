@@ -25,9 +25,11 @@ class Graphics {
         static void Install();
     };
     static inline std::vector<std::function<void()>> drawFunctions;
+    static inline ImFont* transformMenuFont = nullptr;
     static float GetResolutionScale();
 
 public:
+    static ImFont* GetTransformMenuFont();
     static void Register(std::function<void()> drawFunction);
     static void Render();
     static void Install();

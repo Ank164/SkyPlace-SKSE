@@ -239,7 +239,6 @@ bool SlicedWindow::Begin(
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
     const bool renderContent = ImGui::Begin(name, nullptr, flags);
-    ImGui::SetWindowFontScale(scale);
     const SlicedWindowMetrics metrics = DrawCurrentWindow(scale);
     DrawTitle(name, metrics);
 

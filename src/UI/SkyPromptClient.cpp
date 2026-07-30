@@ -38,6 +38,16 @@ namespace {
     constexpr float gamepadRotationScale = 5.0f;
     constexpr float gamepadObjectScale = 10.0f;
 
+    constexpr char iconRotate[] = "\xEF\x80\xA1";
+    constexpr char iconRotateLeft[] = "\xEF\x8B\xAA";
+    constexpr char iconRotateRight[] = "\xEF\x8B\xB9";
+    constexpr char iconUpDown[] = "\xEF\x8C\xB8";
+    constexpr char iconLeftRight[] = "\xEF\x8C\xB7";
+    constexpr char iconMove[] = "\xEF\x81\x87";
+    constexpr char iconDepth[] = "\xEF\x86\xB2";
+    constexpr char iconScale[] = "\xEF\x90\xA4";
+    constexpr char iconExit[] = "\xEF\x8B\xB5";
+
     bool IsInventoryCloneItem(RE::TESBoundObject* item) {
         if (!item || !item->As<RE::TESObjectMISC>() || !IsDynamicId(item->GetFormID())) {
             return false;
@@ -334,11 +344,17 @@ void CycleTransformMode(bool forward) {
 
 bool RenderTransformButton(
     const char* label,
+    const char* icon,
     const char* id,
     bool selected,
     const ImVec2& size,
     float scale) {
-    const ImVec2 textSize = ImGui::CalcTextSize(label);
+    const ImVec2 labelSize = ImGui::CalcTextSize(label);
+    const ImVec2 iconSize = ImGui::CalcTextSize(icon);
+    const float iconSpacing = 12.0f * scale;
+    const ImVec2 textSize{
+        iconSize.x + iconSpacing + labelSize.x,
+        std::max(iconSize.y, labelSize.y)};
     const float rowHeight = std::max(
         size.y,
         std::max(
@@ -393,13 +409,21 @@ bool RenderTransformButton(
         }
     }
 
-    const ImVec2 textPosition{
+    const ImVec2 iconPosition{
         buttonMinimum.x + (buttonSize.x - textSize.x) * 0.5f,
-        buttonMinimum.y + (rowHeight - textSize.y) * 0.5f};
+        buttonMinimum.y + (rowHeight - iconSize.y) * 0.5f};
+    const ImU32 textColor = selected ?
+        IM_COL32(0, 0, 0, 255) :
+        ImGui::GetColorU32(ImGuiCol_Text);
     drawList->AddText(
-        textPosition,
-        selected ? IM_COL32(0, 0, 0, 255) :
-            ImGui::GetColorU32(ImGuiCol_Text),
+        iconPosition,
+        textColor,
+        icon);
+    drawList->AddText(
+        ImVec2{
+            iconPosition.x + iconSize.x + iconSpacing,
+            buttonMinimum.y + (rowHeight - labelSize.y) * 0.5f},
+        textColor,
         label);
 
     return pressed;
@@ -407,12 +431,14 @@ bool RenderTransformButton(
 
 bool RenderModeButton(
     const char* translationKey,
+    const char* icon,
     const char* id,
     TransformMode mode,
     const ImVec2& size,
     float scale) {
     const bool pressed = RenderTransformButton(
         Translations::Get(translationKey),
+        icon,
         id,
         transformMode == mode,
         size,
@@ -462,6 +488,11 @@ void RenderTransformMenu() {
         ImGuiStyleVar_ItemInnerSpacing,
         ImVec2{style.ItemInnerSpacing.x * scale, style.ItemInnerSpacing.y * scale});
 
+    ImFont* transformMenuFont = Graphics::GetTransformMenuFont();
+    if (transformMenuFont) {
+        ImGui::PushFont(transformMenuFont);
+    }
+
     if (SlicedWindow::Begin(windowTitle.c_str(), windowFlags, scale)) {
         const float fullWidth = ImGui::GetContentRegionAvail().x;
         const ImVec2 buttonSize(fullWidth, 0.0f);
@@ -469,18 +500,21 @@ void RenderTransformMenu() {
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Rotation"));
         RenderModeButton(
             "TransformMenu.Rotation.Horizontal",
+            iconRotateLeft,
             "RotationHorizontal",
             TransformMode::kRotationHorizontal,
             buttonSize,
             scale);
         RenderModeButton(
             "TransformMenu.Rotation.Vertical",
+            iconRotateRight,
             "RotationVertical",
             TransformMode::kRotationVertical,
             buttonSize,
             scale);
         RenderModeButton(
             "TransformMenu.Rotation.Free",
+            iconRotate,
             "RotationFree",
             TransformMode::kRotationFree,
             buttonSize,
@@ -490,24 +524,28 @@ void RenderTransformMenu() {
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Translation"));
         RenderModeButton(
             "TransformMenu.Translation.UpDown",
+            iconUpDown,
             "TranslationUpDown",
             TransformMode::kTranslationUpDown,
             buttonSize,
             scale);
         RenderModeButton(
             "TransformMenu.Translation.LeftRight",
+            iconLeftRight,
             "TranslationLeftRight",
             TransformMode::kTranslationLeftRight,
             buttonSize,
             scale);
         RenderModeButton(
             "TransformMenu.Translation.ForwardBackward",
+            iconMove,
             "TranslationForwardBackward",
             TransformMode::kTranslationForwardBackward,
             buttonSize,
             scale);
         RenderModeButton(
             "TransformMenu.Translation.Depth",
+            iconDepth,
             "TranslationDepth",
             TransformMode::kTranslationDepth,
             buttonSize,
@@ -517,6 +555,7 @@ void RenderTransformMenu() {
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Scale.Section"));
         RenderModeButton(
             "TransformMenu.Scale",
+            iconScale,
             "Scale",
             TransformMode::kScale,
             ImVec2(fullWidth, 0.0f),
@@ -526,6 +565,7 @@ void RenderTransformMenu() {
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Exit.Section"));
         if (RenderTransformButton(
                 Translations::Get("TransformMenu.Exit"),
+                iconExit,
                 "Exit",
                 false,
                 ImVec2(fullWidth, 0.0f),
@@ -551,6 +591,9 @@ void RenderTransformMenu() {
         ImGui::PopTextWrapPos();
     }
     SlicedWindow::End();
+    if (transformMenuFont) {
+        ImGui::PopFont();
+    }
     ImGui::PopStyleVar(3);
 }
 
