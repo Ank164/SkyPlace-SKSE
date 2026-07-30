@@ -336,13 +336,16 @@ bool RenderTransformButton(
     const char* label,
     const char* id,
     bool selected,
-    const ImVec2& size) {
+    const ImVec2& size,
+    float scale) {
     const ImVec2 textSize = ImGui::CalcTextSize(label);
     const float rowHeight = std::max(
         size.y,
-        std::max(32.0f, textSize.y + ImGui::GetStyle().FramePadding.y * 2.0f));
-    constexpr float iconWidth = 35.0f;
-    constexpr float iconHeight = 28.0f;
+        std::max(
+            32.0f * scale,
+            textSize.y + ImGui::GetStyle().FramePadding.y * 2.0f));
+    const float iconWidth = 35.0f * scale;
+    const float iconHeight = 28.0f * scale;
 
     const ImVec2 buttonMinimum = ImGui::GetCursorScreenPos();
     const ImVec2 buttonMaximum{
@@ -406,12 +409,14 @@ bool RenderModeButton(
     const char* translationKey,
     const char* id,
     TransformMode mode,
-    const ImVec2& size) {
+    const ImVec2& size,
+    float scale) {
     const bool pressed = RenderTransformButton(
         Translations::Get(translationKey),
         id,
         transformMode == mode,
-        size);
+        size,
+        scale);
 
     if (pressed) {
         SetSelectedTransformMode(mode);
@@ -425,11 +430,13 @@ void RenderTransformMenu() {
     }
 
     const ImGuiIO& io = ImGui::GetIO();
+    constexpr float referenceHeight = 1080.0f;
+    const float scale = std::max(io.DisplaySize.y / referenceHeight, 0.01f);
     ImGui::SetNextWindowPos(
-        ImVec2(io.DisplaySize.x - 40.0f, io.DisplaySize.y * 0.5f),
+        ImVec2(io.DisplaySize.x - 40.0f * scale, io.DisplaySize.y * 0.5f),
         ImGuiCond_Always,
         ImVec2(1.0f, 0.5f));
-    constexpr float windowWidth = 480.0f;
+    const float windowWidth = 480.0f * scale;
     ImGui::SetNextWindowSizeConstraints(
         ImVec2(windowWidth, 0.0f),
         ImVec2(windowWidth, io.DisplaySize.y));
@@ -444,7 +451,18 @@ void RenderTransformMenu() {
         ImGuiWindowFlags_NoResize |
         ImGuiWindowFlags_NoSavedSettings;
 
-    if (SlicedWindow::Begin(windowTitle.c_str(), windowFlags)) {
+    const ImGuiStyle& style = ImGui::GetStyle();
+    ImGui::PushStyleVar(
+        ImGuiStyleVar_FramePadding,
+        ImVec2{style.FramePadding.x * scale, style.FramePadding.y * scale});
+    ImGui::PushStyleVar(
+        ImGuiStyleVar_ItemSpacing,
+        ImVec2{style.ItemSpacing.x * scale, style.ItemSpacing.y * scale});
+    ImGui::PushStyleVar(
+        ImGuiStyleVar_ItemInnerSpacing,
+        ImVec2{style.ItemInnerSpacing.x * scale, style.ItemInnerSpacing.y * scale});
+
+    if (SlicedWindow::Begin(windowTitle.c_str(), windowFlags, scale)) {
         const float fullWidth = ImGui::GetContentRegionAvail().x;
         const ImVec2 buttonSize(fullWidth, 0.0f);
 
@@ -453,17 +471,20 @@ void RenderTransformMenu() {
             "TransformMenu.Rotation.Horizontal",
             "RotationHorizontal",
             TransformMode::kRotationHorizontal,
-            buttonSize);
+            buttonSize,
+            scale);
         RenderModeButton(
             "TransformMenu.Rotation.Vertical",
             "RotationVertical",
             TransformMode::kRotationVertical,
-            buttonSize);
+            buttonSize,
+            scale);
         RenderModeButton(
             "TransformMenu.Rotation.Free",
             "RotationFree",
             TransformMode::kRotationFree,
-            buttonSize);
+            buttonSize,
+            scale);
 
         ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Translation"));
@@ -471,22 +492,26 @@ void RenderTransformMenu() {
             "TransformMenu.Translation.UpDown",
             "TranslationUpDown",
             TransformMode::kTranslationUpDown,
-            buttonSize);
+            buttonSize,
+            scale);
         RenderModeButton(
             "TransformMenu.Translation.LeftRight",
             "TranslationLeftRight",
             TransformMode::kTranslationLeftRight,
-            buttonSize);
+            buttonSize,
+            scale);
         RenderModeButton(
             "TransformMenu.Translation.ForwardBackward",
             "TranslationForwardBackward",
             TransformMode::kTranslationForwardBackward,
-            buttonSize);
+            buttonSize,
+            scale);
         RenderModeButton(
             "TransformMenu.Translation.Depth",
             "TranslationDepth",
             TransformMode::kTranslationDepth,
-            buttonSize);
+            buttonSize,
+            scale);
 
         ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Scale.Section"));
@@ -494,7 +519,8 @@ void RenderTransformMenu() {
             "TransformMenu.Scale",
             "Scale",
             TransformMode::kScale,
-            ImVec2(fullWidth, 0.0f));
+            ImVec2(fullWidth, 0.0f),
+            scale);
 
         ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Exit.Section"));
@@ -502,7 +528,8 @@ void RenderTransformMenu() {
                 Translations::Get("TransformMenu.Exit"),
                 "Exit",
                 false,
-                ImVec2(fullWidth, 0.0f))) {
+                ImVec2(fullWidth, 0.0f),
+                scale)) {
             SetTransformMode(false, true);
         }
 
@@ -524,6 +551,7 @@ void RenderTransformMenu() {
         ImGui::PopTextWrapPos();
     }
     SlicedWindow::End();
+    ImGui::PopStyleVar(3);
 }
 
 void SkyPromptClient::Install() {

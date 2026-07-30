@@ -120,38 +120,42 @@ namespace {
         }
     }
 
-    SlicedWindowMetrics GetMetrics(const ImVec2& size) {
+    SlicedWindowMetrics GetMetrics(const ImVec2& size, float scale) {
         SlicedWindowMetrics metrics;
         metrics.titleHeight = std::clamp(
-            titleHeight,
-            titleTexture.sourceSize.y,
-            std::max(titleTexture.sourceSize.y, size.y * 0.35f));
+            titleHeight * scale,
+            titleTexture.sourceSize.y * scale,
+            std::max(titleTexture.sourceSize.y * scale, size.y * 0.35f));
 
         const float panelHeight = std::max(
             0.0f,
             size.y - metrics.titleHeight);
         metrics.panelBorder = std::min({
-            panelBorder,
+            panelBorder * scale,
             size.x * 0.12f,
             panelHeight * 0.35f});
         return metrics;
     }
 
-    SlicedWindowMetrics DrawCurrentWindow() {
+    SlicedWindowMetrics DrawCurrentWindow(float scale) {
         const ImVec2 position = ImGui::GetWindowPos();
         const ImVec2 size = ImGui::GetWindowSize();
         const ImVec2 maximum{
             position.x + size.x,
             position.y + size.y};
-        const SlicedWindowMetrics metrics = GetMetrics(size);
+        const SlicedWindowMetrics metrics = GetMetrics(size, scale);
 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
         const ImTextureID panelTextureID = TextureManager::GetTexture(
             panelTexture.path,
-            panelTexture.sourceSize);
+            ImVec2{
+                panelTexture.sourceSize.x * scale,
+                panelTexture.sourceSize.y * scale});
         const ImTextureID titleTextureID = TextureManager::GetTexture(
             titleTexture.path,
-            titleTexture.sourceSize);
+            ImVec2{
+                titleTexture.sourceSize.x * scale,
+                titleTexture.sourceSize.y * scale});
 
         const ImVec2 titleMaximum{
             maximum.x,
@@ -177,7 +181,11 @@ namespace {
             position,
             titleMaximum,
             titleTexture,
-            titleTexture.destinationBorder);
+            ImVec4{
+                titleTexture.destinationBorder.x * scale,
+                titleTexture.destinationBorder.y * scale,
+                titleTexture.destinationBorder.z * scale,
+                titleTexture.destinationBorder.w * scale});
         return metrics;
     }
 
@@ -212,7 +220,10 @@ namespace {
     }
 }
 
-bool SlicedWindow::Begin(const char* name, ImGuiWindowFlags flags) {
+bool SlicedWindow::Begin(
+    const char* name,
+    ImGuiWindowFlags flags,
+    float scale) {
     flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
 
     ImGui::PushStyleColor(
@@ -223,12 +234,13 @@ bool SlicedWindow::Begin(const char* name, ImGuiWindowFlags flags) {
         ImVec4{0.0f, 0.0f, 0.0f, 0.0f});
     ImGui::PushStyleVar(
         ImGuiStyleVar_WindowPadding,
-        ImVec2{windowPadding, windowPadding});
+        ImVec2{windowPadding * scale, windowPadding * scale});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
     const bool renderContent = ImGui::Begin(name, nullptr, flags);
-    const SlicedWindowMetrics metrics = DrawCurrentWindow();
+    ImGui::SetWindowFontScale(scale);
+    const SlicedWindowMetrics metrics = DrawCurrentWindow(scale);
     DrawTitle(name, metrics);
 
     ImGui::PopStyleVar(3);

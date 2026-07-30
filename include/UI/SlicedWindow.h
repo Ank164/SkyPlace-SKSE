@@ -6,6 +6,7 @@ class SlicedWindow {
 public:
     static bool Begin(
         const char* name,
-        ImGuiWindowFlags flags = ImGuiWindowFlags_None);
+        ImGuiWindowFlags flags = ImGuiWindowFlags_None,
+        float scale = 1.0f);
     static void End();
 };
