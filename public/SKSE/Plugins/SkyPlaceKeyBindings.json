@@ -57,7 +57,7 @@
     },
     {
       "device": "gamepad",
-      "key": "leftshoulder"
+      "key": "lefttrigger"
     }
   ],
   "SkyPrompt.Pick.Pick": [
@@ -67,7 +67,7 @@
     },
     {
       "device": "gamepad",
-      "key": "lefttrigger"
+      "key": "leftshoulder"
     }
   ],
   "SkyPrompt.Pick.Move": [
