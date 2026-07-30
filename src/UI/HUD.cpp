@@ -122,6 +122,9 @@ void HUD::ProcessEvent(MenuEvent event, RE::NiPoint2 delta) {
         case kPlaceOrbitRotate:
             Placer::OrbitRotateEvent(delta);
             break;
+        case kPlaceScale:
+            Placer::ScaleEvent(delta);
+            break;
 
         case kPickPickAccepted:
             Picker::PickEvent();

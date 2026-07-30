@@ -26,6 +26,8 @@ namespace {
     constexpr float defaultRaycastDistance = 500.0f;
     constexpr float minimumRaycastDistance = 10.0f;
     constexpr float maximumRaycastDistance = 5000.0f;
+    constexpr float minimumGroupScale = 0.1f;
+    constexpr float maximumGroupScale = 10.0f;
 
     void DrawWorldBoundingBox(
         const std::pair<RE::NiPoint3, RE::NiPoint3>& bounds) {
@@ -286,6 +288,17 @@ void Placer::OrbitRotateEvent(RE::NiPoint2 delta) {
     currentAngle = MatrixToEulerXYZ(currentOrientation);
 }
 
+void Placer::ScaleEvent(RE::NiPoint2 delta) {
+    if (!GetMoveHandle() || delta.y == 0.0f) {
+        return;
+    }
+
+    groupScale = std::clamp(
+        groupScale * std::exp(-delta.y * 0.005f),
+        minimumGroupScale,
+        maximumGroupScale);
+}
+
 void Placer::PickEvent() {
     if (GetMoveHandle()) {
         std::vector<RE::ObjectRefHandle> pickHandles;
@@ -506,6 +519,7 @@ void Placer::Move(const RE::ObjectRefHandle& handle) {
     numNormals = 0;
     translation = {};
     raycastDistance = defaultRaycastDistance;
+    groupScale = 1.0f;
 
     Picker::ShowPlacementHighlights(handle);
     ShowGroupPlacementHighlights();
@@ -731,6 +745,8 @@ void Placer::BeginGroupMove() {
             selectedRef->GetAngle(),
             selectedRef->GetPosition(),
             selectedRef->GetAngle(),
+            selectedRef->GetScale(),
+            selectedRef->GetScale(),
             false
         };
 
@@ -789,9 +805,11 @@ void Placer::ApplyGroupTransform() {
             continue;
         }
 
-        const RE::NiPoint3 initialOffset = member.initialPosition - initialPosition;
+        const RE::NiPoint3 initialOffset =
+            (member.initialPosition - initialPosition) * groupScale;
         const glm::vec4 rotatedOffset = rotationDelta * glm::vec4(initialOffset.x, initialOffset.y, initialOffset.z, 0.0f);
         member.currentPosition = currentPosition + RE::NiPoint3(rotatedOffset.x, rotatedOffset.y, rotatedOffset.z);
+        member.currentScale = member.initialScale * groupScale;
 
         const glm::mat4 initialMemberRotation = glm::eulerAngleXYZ(-member.initialAngle.x, -member.initialAngle.y, -member.initialAngle.z);
         const glm::mat4 currentMemberRotation = rotationDelta * initialMemberRotation;
@@ -809,12 +827,16 @@ void Placer::ApplyGroupTransform() {
         RE::NiTransform newTransform = oldTransform;
         newTransform.translate = member.currentPosition;
         newTransform.rotate.SetEulerAnglesXYZ(member.currentAngle);
+        newTransform.scale = member.currentScale;
 
         Transform::SetPosition(member.handle, member.currentPosition);
         Transform::SetAngle(member.handle, member.currentAngle);
         if (member3D) {
             MoveCollisionBodies(member3D, oldTransform, newTransform);
+            memberRef->SetScale(member.currentScale);
             memberRef->Update3DPosition(true);
+        } else {
+            memberRef->SetScale(member.currentScale);
         }
         UpdateObjectRoom(member.handle);
     }
@@ -850,8 +872,10 @@ void Placer::FinishGroupMove(bool restoreOriginalTransform) {
 
         const RE::NiPoint3 position = restoreOriginalTransform ? member.initialPosition : member.currentPosition;
         const RE::NiPoint3 memberAngle = restoreOriginalTransform ? member.initialAngle : member.currentAngle;
+        const float memberScale = restoreOriginalTransform ? member.initialScale : member.currentScale;
 
         Transform::Wrap(member.handle, position, memberAngle);
+        memberRef->SetScale(memberScale);
         UpdateObjectRoom(member.handle);
         if (member.hasPlacementHighlight) {
             Shader::RefreshReferenceHighlight(member.handle);

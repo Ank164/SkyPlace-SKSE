@@ -8,24 +8,16 @@
 #include "Picker.h"
 #include "SkyPlaceCursorMenu.h"
 #include "SkyPlaceConfig.h"
+#include "Graphics.h"
 
 #define PLACE_PLACE_BUTTON 1
 #define PLACE_PICK_BUTTON 2
-#define PLACE_TRANSLATE_BUTTON 3
+#define PLACE_TRANSFORM_BUTTON 3
 #define PICK_MOVE_BUTTON 5
 #define PICK_PICK_BUTTON 6
 #define PICK_TOGGLE_SELECTION_BUTTON 10
 #define PICK_DESELECT_ALL_BUTTON 11
 #define INVENTORY_CLONE_BUTTON 12
-#define PLACE_ORBIT_BUTTON 13
-#define PLACE_EXIT_ROTATION_BUTTON 14
-#define PLACE_ROTATION_HORIZONTAL_BUTTON 15
-#define PLACE_ROTATION_VERTICAL_BUTTON 16
-#define PLACE_ROTATION_FREE_BUTTON 17
-#define PLACE_EXIT_TRANSLATION_BUTTON 18
-#define PLACE_TRANSLATION_UP_DOWN_BUTTON 19
-#define PLACE_TRANSLATION_LEFT_RIGHT_BUTTON 20
-#define PLACE_TRANSLATION_DEPTH_BUTTON 21
 
 using promptList = std::vector<SkyPromptAPI::Prompt>;
 
@@ -36,6 +28,7 @@ namespace {
     constexpr std::uint32_t selectedPromptColor = IM_COL32(128, 255, 128, 255);
     constexpr float gamepadTranslationScale = 10.0f;
     constexpr float gamepadRotationScale = 5.0f;
+    constexpr float gamepadObjectScale = 10.0f;
 
     bool IsInventoryCloneItem(RE::TESBoundObject* item) {
         if (!item || !item->As<RE::TESObjectMISC>() || !IsDynamicId(item->GetFormID())) {
@@ -67,105 +60,11 @@ namespace {
 struct ButtonSetPlace {
     std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons1 = InputConfig::Get("SkyPrompt.Place.Place");
     std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons2 = InputConfig::Get("SkyPrompt.Place.Pick");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons3 = InputConfig::Get("SkyPrompt.Place.Translate");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons4 = InputConfig::Get("SkyPrompt.Place.Orbit");
+    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> buttons3 = InputConfig::Get("SkyPrompt.Place.Transform");
 
     promptList prompts = {SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Place"), PLACE_PLACE_BUTTON, 0, SkyPromptAPI::PromptType::kHold, 0, buttons1, 0xFFFFFFFF),
                           SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Pick"), PLACE_PICK_BUTTON, 0, SkyPromptAPI::PromptType::kHold, 0, buttons2, 0xFFFFFFFF),
-                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Translate"), PLACE_TRANSLATE_BUTTON, 0, SkyPromptAPI::PromptType::kSinglePress, 0, buttons3, 0xFFFFFFFF),
-                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Orbit"), PLACE_ORBIT_BUTTON, 0, SkyPromptAPI::PromptType::kSinglePress, 0, buttons4, 0xFFFFFFFF)};
-};
-
-struct ButtonSetRotation {
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> exitButtons =
-        InputConfig::Get("SkyPrompt.Place.Orbit");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> horizontalButtons =
-        InputConfig::Get("SkyPrompt.Place.RotationHorizontal");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> verticalButtons =
-        InputConfig::Get("SkyPrompt.Place.RotationVertical");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> freeButtons =
-        InputConfig::Get("SkyPrompt.Place.RotationFree");
-
-    promptList prompts = {
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.ExitRotation"),
-            PLACE_EXIT_ROTATION_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            exitButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.RotationHorizontal"),
-            PLACE_ROTATION_HORIZONTAL_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            horizontalButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.RotationVertical"),
-            PLACE_ROTATION_VERTICAL_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            verticalButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.RotationFree"),
-            PLACE_ROTATION_FREE_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            freeButtons,
-            0xFFFFFFFF)
-    };
-};
-
-struct ButtonSetTranslation {
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> exitButtons =
-        InputConfig::Get("SkyPrompt.Place.Translate");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> depthButtons =
-        InputConfig::Get("SkyPrompt.Place.TranslationDepth");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> upDownButtons =
-        InputConfig::Get("SkyPrompt.Place.TranslationUpDown");
-    std::vector<std::pair<RE::INPUT_DEVICE, SkyPromptAPI::ButtonID>> leftRightButtons =
-        InputConfig::Get("SkyPrompt.Place.TranslationLeftRight");
-
-    promptList prompts = {
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.ExitTranslation"),
-            PLACE_EXIT_TRANSLATION_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            exitButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.TranslationDepth"),
-            PLACE_TRANSLATION_DEPTH_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            depthButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.TranslationUpDown"),
-            PLACE_TRANSLATION_UP_DOWN_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            upDownButtons,
-            0xFFFFFFFF),
-        SkyPromptAPI::Prompt(
-            Translations::Get("SkyPrompt.Place.TranslationLeftRight"),
-            PLACE_TRANSLATION_LEFT_RIGHT_BUTTON,
-            0,
-            SkyPromptAPI::PromptType::kSinglePress,
-            0,
-            leftRightButtons,
-            0xFFFFFFFF)
-    };
+                          SkyPromptAPI::Prompt(Translations::Get("SkyPrompt.Place.Transform"), PLACE_TRANSFORM_BUTTON, 0, SkyPromptAPI::PromptType::kSinglePress, 0, buttons3, 0xFFFFFFFF)};
 };
 
 struct ButtonSetPick {
@@ -198,24 +97,19 @@ struct ButtonSetInventoryClone {
 
 SkyPromptAPI::ClientID clientID = 0;
 
-enum class OrbitRotationConstraint {
-    kHorizontal,
-    kVertical,
-    kFree
+enum class TransformMode {
+    kTranslationUpDown,
+    kTranslationLeftRight,
+    kTranslationDepth,
+    kRotationHorizontal,
+    kRotationVertical,
+    kRotationFree,
+    kScale
 };
 
-enum class TranslationConstraint {
-    kUpDown,
-    kLeftRight,
-    kDepth
-};
-
-bool is3DTranslationMode = false;
-bool isTranslationDragging = false;
-TranslationConstraint translationConstraint = TranslationConstraint::kDepth;
-bool isOrbitRotationMode = false;
-bool isOrbitDragging = false;
-OrbitRotationConstraint orbitRotationConstraint = OrbitRotationConstraint::kHorizontal;
+bool isTransformMode = false;
+bool isTransformDragging = false;
+TransformMode transformMode = TransformMode::kTranslationDepth;
 bool isEnabled = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
@@ -293,66 +187,6 @@ public:
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
 };
 
-class RotationSink final : public SkyPromptAPI::PromptSink {
-public:
-    void Show() {
-        RefreshPrompts();
-        SkyPromptAPI::SendPrompt(this, clientID);
-    }
-
-    void Hide() { SkyPromptAPI::RemovePrompt(this, clientID); }
-
-    RotationSink() { set = ButtonSetRotation(); }
-
-    static inline ButtonSetRotation set;
-
-    void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
-
-    void RefreshPrompts() {
-        set.prompts[1].text_color =
-            orbitRotationConstraint == OrbitRotationConstraint::kHorizontal ?
-                selectedPromptColor : defaultPromptColor;
-        set.prompts[2].text_color =
-            orbitRotationConstraint == OrbitRotationConstraint::kVertical ?
-                selectedPromptColor : defaultPromptColor;
-        set.prompts[3].text_color =
-            orbitRotationConstraint == OrbitRotationConstraint::kFree ?
-                selectedPromptColor : defaultPromptColor;
-    }
-
-    std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
-};
-
-class TranslationSink final : public SkyPromptAPI::PromptSink {
-public:
-    void Show() {
-        RefreshPrompts();
-        SkyPromptAPI::SendPrompt(this, clientID);
-    }
-
-    void Hide() { SkyPromptAPI::RemovePrompt(this, clientID); }
-
-    TranslationSink() { set = ButtonSetTranslation(); }
-
-    static inline ButtonSetTranslation set;
-
-    void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
-
-    void RefreshPrompts() {
-        set.prompts[1].text_color =
-            translationConstraint == TranslationConstraint::kDepth ?
-                selectedPromptColor : defaultPromptColor;
-        set.prompts[2].text_color =
-            translationConstraint == TranslationConstraint::kUpDown ?
-                selectedPromptColor : defaultPromptColor;
-        set.prompts[3].text_color =
-            translationConstraint == TranslationConstraint::kLeftRight ?
-                selectedPromptColor : defaultPromptColor;
-    }
-
-    std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
-};
-
 class InventoryCloneSink final : public SkyPromptAPI::PromptSink {
 public:
     void Show() { SkyPromptAPI::SendPrompt(this, clientID); }
@@ -378,24 +212,39 @@ public:
 
 PlaceSink* placeSink = 0;
 PickSink* pickSink = 0;
-RotationSink* rotationSink = 0;
-TranslationSink* translationSink = 0;
 InventoryCloneSink* inventoryCloneSink = 0;
 
-void Process3DTranslationDelta(const RE::NiPoint2 delta) {
+void ProcessTransformDelta(const RE::NiPoint2 delta) {
     RE::NiPoint2 constrainedDelta{};
     MenuEvent event = MenuEvent::kPlaceTranslateUpDown;
-    switch (translationConstraint) {
-        case TranslationConstraint::kUpDown:
+
+    switch (transformMode) {
+        case TransformMode::kTranslationUpDown:
             constrainedDelta.y = delta.y;
             break;
-        case TranslationConstraint::kLeftRight:
+        case TransformMode::kTranslationLeftRight:
             constrainedDelta.x = delta.x;
             event = MenuEvent::kPlaceTranslateLeftRight;
             break;
-        case TranslationConstraint::kDepth:
+        case TransformMode::kTranslationDepth:
             constrainedDelta.y = delta.y;
             event = MenuEvent::kPlaceTranslateDepth;
+            break;
+        case TransformMode::kRotationHorizontal:
+            constrainedDelta.x = delta.x;
+            event = MenuEvent::kPlaceOrbitRotate;
+            break;
+        case TransformMode::kRotationVertical:
+            constrainedDelta.y = delta.y;
+            event = MenuEvent::kPlaceOrbitRotate;
+            break;
+        case TransformMode::kRotationFree:
+            constrainedDelta = delta;
+            event = MenuEvent::kPlaceOrbitRotate;
+            break;
+        case TransformMode::kScale:
+            constrainedDelta.y = delta.y;
+            event = MenuEvent::kPlaceScale;
             break;
     }
 
@@ -404,70 +253,136 @@ void Process3DTranslationDelta(const RE::NiPoint2 delta) {
     }
 }
 
-void ProcessOrbitRotationDelta(const RE::NiPoint2 delta) {
-    RE::NiPoint2 rotationDelta{};
-    switch (orbitRotationConstraint) {
-        case OrbitRotationConstraint::kHorizontal:
-            rotationDelta.x = delta.x;
-            break;
-        case OrbitRotationConstraint::kVertical:
-            rotationDelta.y = delta.y;
-            break;
-        case OrbitRotationConstraint::kFree:
-            rotationDelta = delta;
-            break;
+void SetTransformMode(bool value, bool showPlacementPrompts) {
+    const bool wasTransformMode = isTransformMode;
+    isTransformMode = value;
+    isTransformDragging = false;
+
+    if (ImGui::GetCurrentContext()) {
+        ImGuiIO& io = ImGui::GetIO();
+        if (value) {
+            io.ConfigFlags &= ~ImGuiConfigFlags_NoMouse;
+        } else {
+            io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
+        }
     }
 
-    if (rotationDelta.x == 0.0f && rotationDelta.y == 0.0f) {
+    SkyPlaceCursorMenu::SetOpen(value);
+    if (value) {
+        transformMode = TransformMode::kTranslationDepth;
+        HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
+        if (placeSink) {
+            placeSink->Hide();
+        }
+    } else if (wasTransformMode && showPlacementPrompts && placeSink) {
+        placeSink->Show();
+    }
+}
+
+bool RenderModeButton(
+    const char* translationKey,
+    const char* id,
+    TransformMode mode,
+    const ImVec2& size) {
+    const bool selected = transformMode == mode;
+    if (selected) {
+        ImGui::PushStyleColor(ImGuiCol_Button, selectedPromptColor);
+    }
+
+    const std::string label = std::format(
+        "{}##{}",
+        Translations::Get(translationKey),
+        id);
+    const bool pressed = ImGui::Button(label.c_str(), size);
+    if (selected) {
+        ImGui::PopStyleColor();
+    }
+    if (pressed) {
+        transformMode = mode;
+        isTransformDragging = false;
+        if (mode == TransformMode::kTranslationDepth) {
+            HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
+        }
+    }
+    return pressed;
+}
+
+void RenderTransformMenu() {
+    if (!isTransformMode) {
         return;
     }
 
-    HUD::ProcessEvent(
-        MenuEvent::kPlaceOrbitRotate,
-        rotationDelta);
-}
+    const ImGuiIO& io = ImGui::GetIO();
+    ImGui::SetNextWindowPos(
+        ImVec2(io.DisplaySize.x - 40.0f, io.DisplaySize.y * 0.5f),
+        ImGuiCond_Always,
+        ImVec2(1.0f, 0.5f));
 
-void SetOrbitRotationMode(bool value, bool showPlacementPrompts) {
-    const bool wasOrbitRotationMode = isOrbitRotationMode;
-    isOrbitRotationMode = value;
-    isOrbitDragging = false;
-    const bool cursorEnabled = value || is3DTranslationMode;
-    SkyPlaceCursorMenu::SetOpen(cursorEnabled);
+    const std::string windowTitle = std::format(
+        "{}###SkyPlaceTransformMenu",
+        Translations::Get("TransformMenu.Title"));
+    constexpr ImGuiWindowFlags windowFlags =
+        ImGuiWindowFlags_AlwaysAutoResize |
+        ImGuiWindowFlags_NoCollapse |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoResize |
+        ImGuiWindowFlags_NoSavedSettings;
 
-    if (value) {
-        orbitRotationConstraint = OrbitRotationConstraint::kHorizontal;
-        placeSink->Hide();
-        rotationSink->Show();
-    } else {
-        if (wasOrbitRotationMode) {
-            rotationSink->Hide();
-        }
-        if (showPlacementPrompts) {
-            placeSink->Show();
+    if (ImGui::Begin(windowTitle.c_str(), nullptr, windowFlags)) {
+        constexpr float buttonWidth = 360.0f;
+        const ImVec2 buttonSize(buttonWidth, 0.0f);
+        constexpr float fullWidth = buttonWidth;
+
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Translation"));
+        RenderModeButton(
+            "TransformMenu.Translation.UpDown",
+            "TranslationUpDown",
+            TransformMode::kTranslationUpDown,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Translation.LeftRight",
+            "TranslationLeftRight",
+            TransformMode::kTranslationLeftRight,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Translation.Depth",
+            "TranslationDepth",
+            TransformMode::kTranslationDepth,
+            buttonSize);
+
+        ImGui::Separator();
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Rotation"));
+        RenderModeButton(
+            "TransformMenu.Rotation.Horizontal",
+            "RotationHorizontal",
+            TransformMode::kRotationHorizontal,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Rotation.Vertical",
+            "RotationVertical",
+            TransformMode::kRotationVertical,
+            buttonSize);
+        RenderModeButton(
+            "TransformMenu.Rotation.Free",
+            "RotationFree",
+            TransformMode::kRotationFree,
+            buttonSize);
+
+        ImGui::Separator();
+        RenderModeButton(
+            "TransformMenu.Scale",
+            "Scale",
+            TransformMode::kScale,
+            ImVec2(fullWidth, 0.0f));
+
+        const std::string exitLabel = std::format(
+            "{}##Exit",
+            Translations::Get("TransformMenu.Exit"));
+        if (ImGui::Button(exitLabel.c_str(), ImVec2(fullWidth, 0.0f))) {
+            SetTransformMode(false, true);
         }
     }
-}
-
-void Set3DTranslationMode(bool value, bool showPlacementPrompts) {
-    const bool was3DTranslationMode = is3DTranslationMode;
-    is3DTranslationMode = value;
-    isTranslationDragging = false;
-    const bool cursorEnabled = value || isOrbitRotationMode;
-    SkyPlaceCursorMenu::SetOpen(cursorEnabled);
-
-    if (value) {
-        translationConstraint = TranslationConstraint::kDepth;
-        HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
-        placeSink->Hide();
-        translationSink->Show();
-    } else {
-        if (was3DTranslationMode) {
-            translationSink->Hide();
-        }
-        if (showPlacementPrompts) {
-            placeSink->Show();
-        }
-    }
+    ImGui::End();
 }
 
 void SkyPromptClient::Install() {
@@ -475,10 +390,9 @@ void SkyPromptClient::Install() {
     logger::trace("installing {}", clientID);
     placeSink = new PlaceSink();
     pickSink = new PickSink();
-    rotationSink = new RotationSink();
-    translationSink = new TranslationSink();
     inventoryCloneSink = new InventoryCloneSink();
     InputEventHandler::Register(OnInput);
+    Graphics::Register(RenderTransformMenu);
 }
 
 
@@ -503,106 +417,8 @@ void PlaceSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
             case PLACE_PLACE_BUTTON:
                 HUD::ProcessEvent(MenuEvent::kPlacePlaceAccepted);
                 return;
-            case PLACE_ORBIT_BUTTON:
-                SetOrbitRotationMode(true, false);
-                return;
-            case PLACE_TRANSLATE_BUTTON:
-                Set3DTranslationMode(true, false);
-                return;
-            default:
-                break;
-        }
-    }
-}
-
-void TranslationSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
-    if (event.type == SkyPromptAPI::PromptEventType::kTimeout) {
-        if (is3DTranslationMode) {
-            Show();
-        }
-        return;
-    }
-
-    if (event.type == SkyPromptAPI::PromptEventType::kDeclined ||
-        event.type == SkyPromptAPI::PromptEventType::kRemovedByMod) {
-        if (!is3DTranslationMode) {
-            return;
-        }
-        is3DTranslationMode = false;
-        isTranslationDragging = false;
-        SkyPlaceCursorMenu::SetOpen(false);
-        HUD::ProcessEvent(MenuEvent::kPlacerClose);
-        Hide();
-        return;
-    }
-
-    if (event.type == SkyPromptAPI::PromptEventType::kAccepted) {
-        switch (event.prompt.eventID) {
-            case PLACE_EXIT_TRANSLATION_BUTTON:
-                Set3DTranslationMode(false, true);
-                return;
-            case PLACE_TRANSLATION_UP_DOWN_BUTTON:
-                translationConstraint = TranslationConstraint::kUpDown;
-                Hide();
-                Show();
-                return;
-            case PLACE_TRANSLATION_LEFT_RIGHT_BUTTON:
-                translationConstraint = TranslationConstraint::kLeftRight;
-                Hide();
-                Show();
-                return;
-            case PLACE_TRANSLATION_DEPTH_BUTTON:
-                translationConstraint = TranslationConstraint::kDepth;
-                HUD::ProcessEvent(MenuEvent::kPlaceSetRaycastDistance);
-                Hide();
-                Show();
-                return;
-            default:
-                break;
-        }
-    }
-}
-
-void RotationSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
-    if (event.type == SkyPromptAPI::PromptEventType::kTimeout) {
-        if (isOrbitRotationMode) {
-            Show();
-        }
-        return;
-    }
-
-    if (event.type == SkyPromptAPI::PromptEventType::kDeclined ||
-        event.type == SkyPromptAPI::PromptEventType::kRemovedByMod) {
-        if (!isOrbitRotationMode) {
-            return;
-        }
-        isOrbitRotationMode = false;
-        isOrbitDragging = false;
-        SkyPlaceCursorMenu::SetOpen(false);
-        HUD::ProcessEvent(MenuEvent::kPlacerClose);
-        Hide();
-        return;
-    }
-
-    if (event.type == SkyPromptAPI::PromptEventType::kAccepted) {
-        switch (event.prompt.eventID) {
-            case PLACE_EXIT_ROTATION_BUTTON:
-                SetOrbitRotationMode(false, true);
-                return;
-            case PLACE_ROTATION_HORIZONTAL_BUTTON:
-                orbitRotationConstraint = OrbitRotationConstraint::kHorizontal;
-                Hide();
-                Show();
-                return;
-            case PLACE_ROTATION_VERTICAL_BUTTON:
-                orbitRotationConstraint = OrbitRotationConstraint::kVertical;
-                Hide();
-                Show();
-                return;
-            case PLACE_ROTATION_FREE_BUTTON:
-                orbitRotationConstraint = OrbitRotationConstraint::kFree;
-                Hide();
-                Show();
+            case PLACE_TRANSFORM_BUTTON:
+                SetTransformMode(true, false);
                 return;
             default:
                 break;
@@ -617,17 +433,27 @@ bool SkyPromptClient::GetIsEnabled() { return isEnabled; }
 
 bool SkyPromptClient::OnInput(RE::InputEvent* event) {
     if (event) {
-        if (isOrbitRotationMode || is3DTranslationMode) {
+        if (isTransformMode) {
             if (RE::ButtonEvent* button = event->AsButtonEvent();
                 button && event->GetDevice() == RE::INPUT_DEVICE::kMouse) {
                 if (button->GetIDCode() == RE::BSWin32MouseDevice::Key::kLeftButton) {
-                    if (isOrbitRotationMode) {
-                        isOrbitDragging = button->IsPressed();
+                    if (ImGui::GetCurrentContext()) {
+                        ImGui::GetIO().AddMouseButtonEvent(
+                            ImGuiMouseButton_Left,
+                            button->IsPressed());
                     }
-                    if (is3DTranslationMode) {
-                        isTranslationDragging = button->IsPressed();
+                    if (!button->IsPressed()) {
+                        isTransformDragging = false;
+                    } else {
+                        const bool menuHasMouse = ImGui::GetCurrentContext() &&
+                            ImGui::GetIO().WantCaptureMouse;
+                        isTransformDragging = !menuHasMouse;
                     }
                 }
+                return true;
+            }
+
+            if (event->AsButtonEvent()) {
                 return true;
             }
 
@@ -635,28 +461,24 @@ bool SkyPromptClient::OnInput(RE::InputEvent* event) {
                 const RE::NiPoint2 delta{
                     static_cast<float>(move->mouseInputX),
                     static_cast<float>(move->mouseInputY)};
-                if (isOrbitDragging) {
-                    ProcessOrbitRotationDelta(delta);
-                }
-                if (isTranslationDragging) {
-                    Process3DTranslationDelta(delta);
+                if (isTransformDragging) {
+                    ProcessTransformDelta(delta);
                 }
                 return false;
             }
-        }
 
-        if (RE::ThumbstickEvent* move = event->AsThumbstickEvent()) {
-            if (is3DTranslationMode) {
-                Process3DTranslationDelta(RE::NiPoint2{
-                    move->xValue * gamepadTranslationScale,
-                    -move->yValue * gamepadTranslationScale});
-                return true;
-            }
-
-            if (isOrbitRotationMode) {
-                ProcessOrbitRotationDelta(RE::NiPoint2{
-                    move->xValue * gamepadRotationScale,
-                    -move->yValue * gamepadRotationScale});
+            if (RE::ThumbstickEvent* move = event->AsThumbstickEvent()) {
+                float inputScale = gamepadTranslationScale;
+                if (transformMode == TransformMode::kRotationHorizontal ||
+                    transformMode == TransformMode::kRotationVertical ||
+                    transformMode == TransformMode::kRotationFree) {
+                    inputScale = gamepadRotationScale;
+                } else if (transformMode == TransformMode::kScale) {
+                    inputScale = gamepadObjectScale;
+                }
+                ProcessTransformDelta(RE::NiPoint2{
+                    move->xValue * inputScale,
+                    -move->yValue * inputScale});
                 return true;
             }
         }
@@ -686,8 +508,7 @@ void SkyPromptClient::ShowInventoryClone(
         return;
     }
 
-    SetOrbitRotationMode(false, false);
-    Set3DTranslationMode(false, false);
+    SetTransformMode(false, false);
     inventoryCloneSink->Hide();
     inventoryCloneSink->itemFormID = item->GetFormID();
     inventoryCloneSink->cloneCost = cloneCost;
@@ -714,8 +535,7 @@ void SkyPromptClient::ShowPick(const RE::ObjectRefHandle& handle) {
     if (!placeSink || !clientID || !ref) {
         return;
     }
-    SetOrbitRotationMode(false, false);
-    Set3DTranslationMode(false, false);
+    SetTransformMode(false, false);
     for (auto& item : pickSink->set.prompts) {
         item.refid = ref->GetFormID();
     }
@@ -725,21 +545,19 @@ void SkyPromptClient::ShowPick(const RE::ObjectRefHandle& handle) {
 }
 
 void SkyPromptClient::ShowPlace() {
-    if (!placeSink || !rotationSink || !translationSink || !clientID) {
+    if (!placeSink || !clientID) {
         return;
     }
-    SetOrbitRotationMode(false, false);
-    Set3DTranslationMode(false, false);
+    SetTransformMode(false, false);
     pickSink->Hide();
     placeSink->Show();
 }
 
 void SkyPromptClient::HidePlace() {
-    if (!placeSink || !rotationSink || !translationSink || !clientID) {
+    if (!placeSink || !clientID) {
         return;
     }
-    SetOrbitRotationMode(false, false);
-    Set3DTranslationMode(false, false);
+    SetTransformMode(false, false);
     placeSink->Hide();
 }
 

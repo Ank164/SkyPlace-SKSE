@@ -9,6 +9,7 @@ enum MenuEvent {
     kPlaceTranslateDepth,
     kPlaceSetRaycastDistance,
     kPlaceOrbitRotate,
+    kPlaceScale,
 
     kClosePick,
     kPickPickAccepted,

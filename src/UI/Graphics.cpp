@@ -1,4 +1,5 @@
 #include "Graphics.h"
+#include "SkyPlaceCursorMenu.h"
 #include "Texture.h"
 
 void Graphics::Install() {
@@ -81,6 +82,15 @@ void Graphics::CreateD3DAndSwapChain::Install() {
 void Graphics::DrawHook::thunk(std::uint32_t a_timer) {
     func(a_timer);
 
+    RE::UI* ui = RE::UI::GetSingleton();
+    if (ui && ui->IsMenuOpen(SkyPlaceCursorMenu::MENU_NAME)) {
+        return;
+    }
+
+    Render();
+}
+
+void Graphics::Render() {
     ImGui_ImplDX11_NewFrame();
     ImGui_ImplWin32_NewFrame();
     {
@@ -90,6 +100,13 @@ void Graphics::DrawHook::thunk(std::uint32_t a_timer) {
         auto& io = ImGui::GetIO();
         io.DisplaySize.x = static_cast<float>(screenSize.width);
         io.DisplaySize.y = static_cast<float>(screenSize.height);
+
+        RE::MenuCursor* cursor = RE::MenuCursor::GetSingleton();
+        if (cursor) {
+            io.AddMousePosEvent(
+                cursor->GetRuntimeData().cursorPosX,
+                cursor->GetRuntimeData().cursorPosY);
+        }
     }
     ImGui::NewFrame();
 

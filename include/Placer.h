@@ -8,6 +8,8 @@ class Placer {
         RE::NiPoint3 initialAngle;
         RE::NiPoint3 currentPosition;
         RE::NiPoint3 currentAngle;
+        float initialScale;
+        float currentScale;
         bool hasPlacementHighlight;
     };
 
@@ -22,6 +24,7 @@ class Placer {
     static inline float initialCameraYaw = 0.0f;
     static inline float appliedHorizontalAngle = 0.0f;
     static inline float raycastDistance = 500.0f;
+    static inline float groupScale = 1.0f;
     static inline RE::ObjectRefHandle moveHandle;
     static inline bool inventorySource = false;
     static RE::NiPoint3 Cast();
@@ -63,6 +66,7 @@ public:
     static void TranslateDepthEvent(RE::NiPoint2 delta);
     static void SetRaycastDistanceFromCurrentPosition();
     static void OrbitRotateEvent(RE::NiPoint2 delta);
+    static void ScaleEvent(RE::NiPoint2 delta);
     static void PickEvent();
     static void CancelPlaceEvent();
 };

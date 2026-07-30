@@ -29,6 +29,7 @@ class Graphics {
 
 public:
     static void Register(std::function<void()> drawFunction);
+    static void Render();
     static void Install();
 };
 

@@ -6,6 +6,8 @@ public:
 
     SkyPlaceCursorMenu();
 
+    void PostDisplay() override;
+
     static RE::IMenu* Create();
     static void Register();
     static void SetOpen(bool value);

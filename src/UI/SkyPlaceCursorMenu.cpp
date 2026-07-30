@@ -1,4 +1,5 @@
 #include "SkyPlaceCursorMenu.h"
+#include "Graphics.h"
 
 SkyPlaceCursorMenu::SkyPlaceCursorMenu() {
     menuFlags.set(
@@ -11,6 +12,10 @@ SkyPlaceCursorMenu::SkyPlaceCursorMenu() {
 
 RE::IMenu* SkyPlaceCursorMenu::Create() {
     return new SkyPlaceCursorMenu();
+}
+
+void SkyPlaceCursorMenu::PostDisplay() {
+    Graphics::Render();
 }
 
 void SkyPlaceCursorMenu::Register() {
