@@ -11,7 +11,9 @@
   "TransformMenu.Rotation.Horizontal": "Horizontal",
   "TransformMenu.Rotation.Vertical": "Vertical",
   "TransformMenu.Rotation.Free": "Livre",
-  "TransformMenu.Scale": "Escala",
+  "TransformMenu.Scale.Section": "Escala",
+  "TransformMenu.Scale": "Uniforme",
+  "TransformMenu.Exit.Section": "Opções",
   "TransformMenu.Exit": "Sair",
 
   "SkyPrompt.Pick.Move": "Mover",

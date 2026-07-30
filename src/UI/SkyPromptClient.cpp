@@ -10,6 +10,7 @@
 #include "SkyPlaceConfig.h"
 #include "Graphics.h"
 #include "SlicedWindow.h"
+#include "Texture.h"
 
 #define PLACE_PLACE_BUTTON 1
 #define PLACE_PICK_BUTTON 2
@@ -291,24 +292,87 @@ void SetTransformMode(bool value, bool showPlacementPrompts) {
     }
 }
 
+bool RenderTransformButton(
+    const char* label,
+    const char* id,
+    bool selected,
+    const ImVec2& size) {
+    const ImVec2 textSize = ImGui::CalcTextSize(label);
+    const float rowHeight = std::max(
+        size.y,
+        std::max(32.0f, textSize.y + ImGui::GetStyle().FramePadding.y * 2.0f));
+    constexpr float iconWidth = 35.0f;
+    constexpr float iconHeight = 28.0f;
+
+    const ImVec2 buttonMinimum = ImGui::GetCursorScreenPos();
+    const ImVec2 buttonMaximum{
+        buttonMinimum.x + size.x,
+        buttonMinimum.y + rowHeight};
+    const ImVec2 buttonSize{
+        buttonMaximum.x - buttonMinimum.x,
+        rowHeight};
+    const std::string buttonID = std::format("##{}", id);
+    ImGui::SetCursorScreenPos(buttonMinimum);
+    const bool pressed = ImGui::InvisibleButton(
+        buttonID.c_str(),
+        buttonSize);
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    constexpr ImU32 opaqueWhite = IM_COL32(255, 255, 255, 255);
+    constexpr ImU32 transparentWhite = IM_COL32(255, 255, 255, 0);
+    if (selected) {
+        drawList->AddRectFilledMultiColor(
+            buttonMinimum,
+            buttonMaximum,
+            transparentWhite,
+            opaqueWhite,
+            opaqueWhite,
+            transparentWhite);
+    }
+
+    const float iconTop = buttonMinimum.y + (rowHeight - iconHeight) * 0.5f;
+    const ImVec2 iconMinimum{
+        buttonMinimum.x + ImGui::GetStyle().FramePadding.x,
+        iconTop};
+    const ImVec2 iconMaximum{
+        iconMinimum.x + iconWidth,
+        iconMinimum.y + iconHeight};
+
+    if (selected) {
+        const ImTextureID itemTexture = TextureManager::GetTexture(
+            "Data\\SKSE\\Plugins\\SkyPlaceAssets\\item.svg",
+            ImVec2{iconWidth, iconHeight});
+        if (itemTexture) {
+            drawList->AddImage(
+                itemTexture,
+                iconMinimum,
+                iconMaximum);
+        }
+    }
+
+    const ImVec2 textPosition{
+        buttonMinimum.x + (buttonSize.x - textSize.x) * 0.5f,
+        buttonMinimum.y + (rowHeight - textSize.y) * 0.5f};
+    drawList->AddText(
+        textPosition,
+        selected ? IM_COL32(0, 0, 0, 255) :
+            ImGui::GetColorU32(ImGuiCol_Text),
+        label);
+
+    return pressed;
+}
+
 bool RenderModeButton(
     const char* translationKey,
     const char* id,
     TransformMode mode,
     const ImVec2& size) {
-    const bool selected = transformMode == mode;
-    if (selected) {
-        ImGui::PushStyleColor(ImGuiCol_Button, selectedPromptColor);
-    }
-
-    const std::string label = std::format(
-        "{}##{}",
+    const bool pressed = RenderTransformButton(
         Translations::Get(translationKey),
-        id);
-    const bool pressed = ImGui::Button(label.c_str(), size);
-    if (selected) {
-        ImGui::PopStyleColor();
-    }
+        id,
+        transformMode == mode,
+        size);
+
     if (pressed) {
         transformMode = mode;
         isTransformDragging = false;
@@ -381,16 +445,20 @@ void RenderTransformMenu() {
             buttonSize);
 
         ImGui::Separator();
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Scale.Section"));
         RenderModeButton(
             "TransformMenu.Scale",
             "Scale",
             TransformMode::kScale,
             ImVec2(fullWidth, 0.0f));
 
-        const std::string exitLabel = std::format(
-            "{}##Exit",
-            Translations::Get("TransformMenu.Exit"));
-        if (ImGui::Button(exitLabel.c_str(), ImVec2(fullWidth, 0.0f))) {
+        ImGui::Separator();
+        ImGui::TextUnformatted(Translations::Get("TransformMenu.Exit.Section"));
+        if (RenderTransformButton(
+                Translations::Get("TransformMenu.Exit"),
+                "Exit",
+                false,
+                ImVec2(fullWidth, 0.0f))) {
             SetTransformMode(false, true);
         }
     }
