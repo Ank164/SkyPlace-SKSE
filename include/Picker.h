@@ -13,6 +13,7 @@ public:
     static RE::ObjectRefHandle GetLastHoverHandle();
     static void SaveChangeEvent();
     static void MoveEvent();
+    static void MoveEvent(const RE::ObjectRefHandle& handle);
     static void PickEvent();
     static void ToggleSelectionEvent();
     static void DeselectAllEvent();

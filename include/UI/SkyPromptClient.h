@@ -11,7 +11,6 @@ public:
         RE::TESBoundObject* item);
     static void ShowPick(const RE::ObjectRefHandle& handle);
     static void ShowPlace();
-    static void EnsurePlace();
     static void HidePlace();
     static void HidePick();
     static void HideInventoryClone();

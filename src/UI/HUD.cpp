@@ -51,9 +51,6 @@ void HUD::HideInventoryClone() {
 
 void HUD::ShowPlace() {
     if (displayingPlace) {
-        if (!isMenuOpen) {
-            SkyPromptClient::EnsurePlace();
-        }
         return;
     }
     displayingPlace = true;

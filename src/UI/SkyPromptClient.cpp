@@ -4,8 +4,10 @@
 #include "SkyPromptAPI.h"
 #include "Translations.h"
 #include "InputEventHandler.h"
+#include "Menu.h"
 #include "ObjectGroup.h"
 #include "Picker.h"
+#include "Placer.h"
 #include "SkyPlaceCursorMenu.h"
 #include "SkyPlaceConfig.h"
 #include "Graphics.h"
@@ -116,14 +118,12 @@ bool isEnabled = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
 public:
-    void Show() { isShowing = SkyPromptAPI::SendPrompt(this, clientID); }
+    void Show() { SkyPromptAPI::SendPrompt(this, clientID); }
 
     void Hide() {
-        isShowing = false;
         SkyPromptAPI::RemovePrompt(this, clientID);
     }
 
-    bool IsShowing() const { return isShowing; }
 
     PlaceSink() { set = ButtonSetPlace(); };
 
@@ -132,9 +132,6 @@ public:
     void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
-
-private:
-    bool isShowing = false;
 };
 
 class PickSink final : public SkyPromptAPI::PromptSink {
@@ -478,26 +475,69 @@ void SkyPromptClient::Install() {
 
 std::vector<std::string> map = {"kAccepted", "kDeclined", "kRemovedByMod", "kTimingOut", "kTimeout", "kDown", "kUp", "kMove"};
 
+void QueueHUDProcessEvent(MenuEvent event) {
+    const SKSE::TaskInterface* taskInterface = SKSE::GetTaskInterface();
+    if (!taskInterface) {
+        HUD::ProcessEvent(event);
+        return;
+    }
+
+    taskInterface->AddTask([event]() {
+        HUD::ProcessEvent(event);
+    });
+}
+
+void QueuePickMove(const RE::ObjectRefHandle& handle) {
+    const SKSE::TaskInterface* taskInterface = SKSE::GetTaskInterface();
+    if (!taskInterface) {
+        Picker::MoveEvent(handle);
+        return;
+    }
+
+    taskInterface->AddTask([handle]() {
+        Picker::MoveEvent(handle);
+    });
+}
+
+void QueuePlacePromptRefresh() {
+    const SKSE::TaskInterface* taskInterface = SKSE::GetTaskInterface();
+    const auto refresh = []() {
+        if (placeSink && clientID && Placer::IsPlacing() &&
+            !Menu::IsOpen() && !isTransformMode)
+        {
+            placeSink->Show();
+        }
+    };
+
+    if (!taskInterface) {
+        refresh();
+        return;
+    }
+
+    taskInterface->AddTask(refresh);
+}
+
 void PlaceSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
     if (event.type == SkyPromptAPI::PromptEventType::kTimeout) {
-        isShowing = false;
-        Show();
+        Hide();
+        QueuePlacePromptRefresh();
         return;
     }
     if (event.type == SkyPromptAPI::PromptEventType::kDeclined || event.type == SkyPromptAPI::PromptEventType::kRemovedByMod) {
-        isShowing = false;
-        HUD::ProcessEvent(MenuEvent::kPlacerClose);
         Hide();
+        QueueHUDProcessEvent(MenuEvent::kPlacerClose);
         return;
     }
 
     if (event.type == SkyPromptAPI::PromptEventType::kAccepted) {
         switch (event.prompt.eventID) {
             case PLACE_PICK_BUTTON:
-                HUD::ProcessEvent(MenuEvent::kPlacePickAccepted);
+                Hide();
+                QueueHUDProcessEvent(MenuEvent::kPlacePickAccepted);
                 return;
             case PLACE_PLACE_BUTTON:
-                HUD::ProcessEvent(MenuEvent::kPlacePlaceAccepted);
+                Hide();
+                QueueHUDProcessEvent(MenuEvent::kPlacePlaceAccepted);
                 return;
             case PLACE_TRANSFORM_BUTTON:
                 SetTransformMode(true, false);
@@ -635,13 +675,6 @@ void SkyPromptClient::ShowPlace() {
     placeSink->Show();
 }
 
-void SkyPromptClient::EnsurePlace() {
-    if (!placeSink || !clientID || isTransformMode || placeSink->IsShowing()) {
-        return;
-    }
-    placeSink->Show();
-}
-
 void SkyPromptClient::HidePlace() {
     if (!placeSink || !clientID) {
         return;
@@ -684,10 +717,19 @@ void PickSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
                 HUD::ProcessEvent(MenuEvent::kPickPickAccepted);
                 Hide();
                 return;
-            case PICK_MOVE_BUTTON:
-                HUD::ProcessEvent(MenuEvent::kPickMoveAccepted);
+            case PICK_MOVE_BUTTON: {
+                RE::TESObjectREFR* ref =
+                    RE::TESForm::LookupByID<RE::TESObjectREFR>(event.prompt.refid);
+                const RE::ObjectRefHandle handle =
+                    ref ? ref->GetHandle() : Picker::GetLastHoverHandle();
+                if (!handle) {
+                    Hide();
+                    return;
+                }
                 Hide();
+                QueuePickMove(handle);
                 return;
+            }
             case PICK_TOGGLE_SELECTION_BUTTON:
                 HUD::ProcessEvent(MenuEvent::kPickToggleSelectionAccepted);
                 Hide();

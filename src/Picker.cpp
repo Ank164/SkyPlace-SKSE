@@ -46,14 +46,22 @@ void Picker::SaveChangeEvent() {
 }
 
 void Picker::MoveEvent() {
-    const RE::ObjectRefHandle hoverHandle = GetLastHoverHandle();
+    MoveEvent(GetLastHoverHandle());
+}
 
-    if (hoverHandle) {
-        HUD::HidePick();
-        Shader::ClearReferenceHighlight(hoverHandle);
-        lastHoverHandle.reset();
-        Placer::Move(hoverHandle);
+void Picker::MoveEvent(const RE::ObjectRefHandle& handle) {
+    const RE::NiPointer<RE::TESObjectREFR> ref = handle.get();
+    if (!ref || Placer::IsPlacing()) {
+        return;
     }
+
+    // Force a clean Pick-to-Place HUD transition even if the cached Place
+    // state was left active by an earlier prompt callback.
+    HUD::HidePlace();
+    HUD::HidePick();
+    Shader::ClearReferenceHighlight(handle);
+    lastHoverHandle.reset();
+    Placer::Move(handle);
 }
 
 void Picker::PickEvent() {
@@ -242,14 +250,13 @@ void Picker::Tick() {
             Shader::ApplyHoverHighlight(nextHoverHandle);
         }
 
+        lastHoverHandle = nextHoverHandle;
         if (nextHoverHandle) {
             HUD::ShowPick(nextHoverHandle);
         } else {
             HUD::HidePick();
         }
     }
-
-    lastHoverHandle = nextHoverHandle;
 }
 
 bool Picker::PickObjects(const std::vector<RE::ObjectRefHandle>& handles) {
