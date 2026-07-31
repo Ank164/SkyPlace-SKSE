@@ -55,6 +55,10 @@ namespace {
         "Data\\Interface\\ImGuiIcons\\Icons\\mouse.png";
     constexpr char gamepadDragIconPath[] =
         "Data\\Interface\\ImGuiIcons\\Icons\\thumbstickr.png";
+    constexpr char mouseCycleIconPath[] =
+        "Data\\Interface\\ImGuiIcons\\Icons\\scroll.png";
+    constexpr char gamepadCycleIconPath[] =
+        "Data\\Interface\\ImGuiIcons\\Icons\\d-pad.png";
 
     bool IsInventoryCloneItem(RE::TESBoundObject* item) {
         if (!item || !item->As<RE::TESObjectMISC>() || !IsDynamicId(item->GetFormID())) {
@@ -682,6 +686,10 @@ void RenderTransformMenu() {
         RenderControlHint(
             Translations::Get("TransformMenu.Controls.Drag"),
             wasGamepadLastUsed ? gamepadDragIconPath : mouseDragIconPath,
+            scale);
+        RenderControlHint(
+            Translations::Get("TransformMenu.Controls.Cycle"),
+            wasGamepadLastUsed ? gamepadCycleIconPath : mouseCycleIconPath,
             scale);
         RenderControlHint(
             Translations::Get("TransformMenu.Controls.Reset"),

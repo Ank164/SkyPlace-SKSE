@@ -17,7 +17,7 @@
   "TransformMenu.Scale": "Uniform",
   "TransformMenu.Controls.Section": "Controls",
   "TransformMenu.Controls.Select": "Click: Select an option",
-  "TransformMenu.Controls.Cycle": "D-Pad Up / Down or Mouse Wheel: \n Cycle options",
+  "TransformMenu.Controls.Cycle": "Cycle options",
   "TransformMenu.Controls.Close": "{}: Close menu",
   "TransformMenu.Controls.Drag": "Drag to transform",
   "TransformMenu.Controls.Reset": "Reset transform",
