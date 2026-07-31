@@ -377,6 +377,34 @@ void Placer::ScaleEvent(RE::NiPoint2 delta) {
     groupScale *= std::exp(-delta.y * 0.005f);
 }
 
+void Placer::ResetTransformEvent() {
+    std::unique_lock lock(mtx);
+    if (!GetMoveHandle()) {
+        return;
+    }
+
+    const std::pair<RE::NiPoint3, RE::NiPoint3> cameraData =
+        RayCast::GetCameraData();
+    const float cameraYaw = cameraData.first.z;
+    const float cameraRotationAngle = cameraYaw - initialCameraYaw;
+    RE::NiMatrix3 cameraRotation;
+    cameraRotation.SetEulerAnglesXYZ(
+        0.0f,
+        0.0f,
+        cameraRotationAngle);
+
+    translation = {};
+    raycastDistance = defaultRaycastDistance;
+    currentRaycastPosition = Cast();
+    currentPosition = currentRaycastPosition;
+    currentOrientation = cameraRotation * initialOrientation;
+    currentAngle = MatrixToEulerXYZ(currentOrientation);
+    groupScale = 1.0f;
+    appliedHorizontalAngle = cameraRotationAngle;
+
+    ApplyGroupTransform();
+}
+
 void Placer::PickEvent() {
     if (GetMoveHandle()) {
         std::vector<RE::ObjectRefHandle> pickHandles;

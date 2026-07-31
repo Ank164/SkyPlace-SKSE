@@ -131,6 +131,9 @@ void HUD::ProcessEvent(MenuEvent event, RE::NiPoint2 delta) {
         case kPlaceScale:
             Placer::ScaleEvent(delta);
             break;
+        case kPlaceResetTransform:
+            Placer::ResetTransformEvent();
+            break;
 
         case kPickPickAccepted:
             Picker::PickEvent();

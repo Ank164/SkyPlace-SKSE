@@ -50,6 +50,16 @@
       "key": "a"
     }
   ],
+  "SkyPrompt.Place.ResetTransform": [
+    {
+      "device": "keyboard",
+      "key": "r"
+    },
+    {
+      "device": "gamepad",
+      "key": "x"
+    }
+  ],
   "SkyPrompt.Place.FixInPlace": [
     {
       "device": "mouse",

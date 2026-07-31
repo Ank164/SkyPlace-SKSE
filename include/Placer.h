@@ -69,6 +69,7 @@ public:
     static void SetRaycastDistanceFromCurrentPosition();
     static void OrbitRotateEvent(RE::NiPoint2 delta);
     static void ScaleEvent(RE::NiPoint2 delta);
+    static void ResetTransformEvent();
     static void PickEvent();
     static void CancelPlaceEvent();
 };

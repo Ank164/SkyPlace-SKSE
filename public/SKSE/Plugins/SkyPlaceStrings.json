@@ -20,6 +20,7 @@
   "TransformMenu.Controls.Cycle": "D-Pad Up / Down or Mouse Wheel: \n Cycle options",
   "TransformMenu.Controls.Close": "{}: Close menu",
   "TransformMenu.Exit.Section": "Options",
+  "TransformMenu.Reset": "Reset",
   "TransformMenu.Exit": "Exit",
   "SkyPrompt.Pick.Move": "Move",
   "SkyPrompt.Pick.Pick": "Pick",

@@ -20,6 +20,7 @@
   "TransformMenu.Controls.Cycle": "Direcional para cima / baixo ou roda do mouse: \n alternar opções",
   "TransformMenu.Controls.Close": "{}: fechar menu",
   "TransformMenu.Exit.Section": "Opções",
+  "TransformMenu.Reset": "Resetar",
   "TransformMenu.Exit": "Sair",
 
   "SkyPrompt.Pick.Move": "Mover",

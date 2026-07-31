@@ -47,6 +47,7 @@ namespace {
     constexpr char iconMove[] = "\xEF\x81\x87";
     constexpr char iconDepth[] = "\xEF\x86\xB2";
     constexpr char iconScale[] = "\xEF\x90\xA4";
+    constexpr char iconReset[] = "\xEF\x87\x9A";
     constexpr char iconExit[] = "\xEF\x8B\xB5";
 
     bool IsInventoryCloneItem(RE::TESBoundObject* item) {
@@ -566,12 +567,25 @@ void RenderTransformMenu() {
 
         ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Exit.Section"));
+        const float optionSpacing = ImGui::GetStyle().ItemSpacing.x;
+        const float optionWidth =
+            std::max(0.0f, (fullWidth - optionSpacing) * 0.5f);
+        if (RenderTransformButton(
+                Translations::Get("TransformMenu.Reset"),
+                iconReset,
+                "Reset",
+                false,
+                ImVec2(optionWidth, 0.0f),
+                scale)) {
+            HUD::ProcessEvent(MenuEvent::kPlaceResetTransform);
+        }
+        ImGui::SameLine();
         if (RenderTransformButton(
                 Translations::Get("TransformMenu.Exit"),
                 iconExit,
                 "Exit",
                 false,
-                ImVec2(fullWidth, 0.0f),
+                ImVec2(optionWidth, 0.0f),
                 scale)) {
             SetTransformMode(false, true);
         }
@@ -699,6 +713,12 @@ bool SkyPromptClient::OnInput(RE::InputEvent* event) {
     if (event) {
         if (isTransformMode) {
             RE::ButtonEvent* button = event->AsButtonEvent();
+            if (button && InputConfig::IsActivated(
+                    "SkyPrompt.Place.ResetTransform",
+                    event)) {
+                HUD::ProcessEvent(MenuEvent::kPlaceResetTransform);
+                return true;
+            }
             if (button && InputConfig::IsActivated(
                     "SkyPrompt.Place.Transform",
                     event)) {
