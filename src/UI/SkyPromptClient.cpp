@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 
 #include "HUD.h"
 #include "Icon.h"
@@ -158,9 +159,20 @@ bool wasGamepadLastUsed = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
 public:
-    void Show() { SkyPromptAPI::SendPrompt(this, clientID); }
+    void Show() {
+        bool expected = false;
+        if (!isShown.compare_exchange_strong(expected, true)) {
+            return;
+        }
+        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+            isShown.store(false);
+        }
+    }
 
     void Hide() {
+        if (!isShown.exchange(false)) {
+            return;
+        }
         SkyPromptAPI::RemovePrompt(this, clientID);
     }
 
@@ -172,13 +184,22 @@ public:
     void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
+
+private:
+    std::atomic_bool isShown = false;
 };
 
 class PickSink final : public SkyPromptAPI::PromptSink {
 public:
     void Show(const RE::ObjectRefHandle& hoverHandle) {
         RefreshPrompts(hoverHandle);
-        SkyPromptAPI::SendPrompt(this, clientID);
+        bool expected = false;
+        if (!isShown.compare_exchange_strong(expected, true)) {
+            return;
+        }
+        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+            isShown.store(false);
+        }
     }
 
     PickSink() {
@@ -186,6 +207,9 @@ public:
     }
 
     void Hide() {
+        if (!isShown.exchange(false)) {
+            return;
+        }
         SkyPromptAPI::RemovePrompt(this, clientID);
     }
 
@@ -230,16 +254,29 @@ public:
     }
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
+
+private:
+    std::atomic_bool isShown = false;
 };
 
 class InventoryCloneSink final : public SkyPromptAPI::PromptSink {
 public:
-    void Show() { SkyPromptAPI::SendPrompt(this, clientID); }
+    void Show() {
+        bool expected = false;
+        if (!isShown.compare_exchange_strong(expected, true)) {
+            return;
+        }
+        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+            isShown.store(false);
+        }
+    }
 
     InventoryCloneSink() { set = ButtonSetInventoryClone(); }
 
     void Hide() {
-        SkyPromptAPI::RemovePrompt(this, clientID);
+        if (isShown.exchange(false)) {
+            SkyPromptAPI::RemovePrompt(this, clientID);
+        }
         itemFormID = 0;
         cloneCost = 0;
         promptText.clear();
@@ -253,6 +290,9 @@ public:
     void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
+
+private:
+    std::atomic_bool isShown = false;
 };
 
 PlaceSink* placeSink = 0;
@@ -1066,6 +1106,14 @@ void RefreshOpenPlayerInventory(RE::TESBoundObject* item) {
     queue->AddMessage(RE::InventoryMenu::MENU_NAME, RE::UI_MESSAGE_TYPE::kInventoryUpdate, data);
 }
 void InventoryCloneSink::ProcessEvent(const SkyPromptAPI::PromptEvent event) {
+    if (event.type == SkyPromptAPI::PromptEventType::kDeclined ||
+        event.type == SkyPromptAPI::PromptEventType::kRemovedByMod ||
+        event.type == SkyPromptAPI::PromptEventType::kTimeout)
+    {
+        Hide();
+        return;
+    }
+
     if (event.type != SkyPromptAPI::PromptEventType::kAccepted ||
         event.prompt.eventID != INVENTORY_CLONE_BUTTON)
     {
