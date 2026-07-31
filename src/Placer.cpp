@@ -204,19 +204,12 @@ namespace {
             });
     }
 
-    void ScaleCollisionGeometry(RE::NiAVObject* root, float scale) {
+    void ApplyLoadedReferenceScale(RE::NiAVObject* root, float scale) {
         if (!root) {
             return;
         }
 
-        RE::BSVisit::TraverseScenegraphCollision(
-            root,
-            [scale](RE::bhkNiCollisionObject* collisionObject) {
-                if (collisionObject && collisionObject->sceneObject) {
-                    collisionObject->sceneObject->local.scale = scale;
-                }
-                return RE::BSVisit::BSVisitControl::kContinue;
-            });
+        root->local.scale = scale;
     }
 }
 
@@ -940,7 +933,7 @@ void Placer::ApplyGroupTransform() {
         if (member3D) {
             MoveCollisionBodies(member3D, oldTransform, newTransform);
             memberRef->SetScale(member.currentScale);
-            ScaleCollisionGeometry(member3D, member.currentScale);
+            ApplyLoadedReferenceScale(member3D, member.currentScale);
             memberRef->Update3DPosition(true);
         } else {
             memberRef->SetScale(member.currentScale);
@@ -985,7 +978,7 @@ void Placer::FinishGroupMove(bool restoreOriginalTransform) {
         memberRef->SetScale(memberScale);
         RE::NiAVObject* member3D = memberRef->Get3D();
         if (member3D) {
-            ScaleCollisionGeometry(member3D, memberScale);
+            ApplyLoadedReferenceScale(member3D, memberScale);
             memberRef->Update3DPosition(true);
         }
         UpdateObjectRoom(member.handle);
