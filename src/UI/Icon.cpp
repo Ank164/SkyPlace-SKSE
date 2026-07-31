@@ -123,22 +123,22 @@ namespace IconPaths {
     };
 
     std::map<std::uint32_t, GamepadIcon> gamePad{
-        {SKSE::InputMap::kGamepadButtonOffset_START, {ICON_PATH("360_Start"), ICON_PATH("PS3_Start")}},
-        {SKSE::InputMap::kGamepadButtonOffset_BACK, {ICON_PATH("360_Back"), ICON_PATH("PS3_Back")}},
-        {SKSE::InputMap::kGamepadButtonOffset_LEFT_THUMB, {ICON_PATH("360_LS"), ICON_PATH("PS3_L3")}},
-        {SKSE::InputMap::kGamepadButtonOffset_RIGHT_THUMB, {ICON_PATH("360_RS"), ICON_PATH("PS3_R3")}},
-        {SKSE::InputMap::kGamepadButtonOffset_LEFT_SHOULDER, {ICON_PATH("360_LB"), ICON_PATH("PS3_LB")}},
-        {SKSE::InputMap::kGamepadButtonOffset_RIGHT_SHOULDER, {ICON_PATH("360_RB"), ICON_PATH("PS3_RB")}},
-        {SKSE::InputMap::kGamepadButtonOffset_A, {ICON_PATH("360_A"), ICON_PATH("PS3_A")}},
-        {SKSE::InputMap::kGamepadButtonOffset_B, {ICON_PATH("360_B"), ICON_PATH("PS3_B")}},
-        {SKSE::InputMap::kGamepadButtonOffset_X, {ICON_PATH("360_X"), ICON_PATH("PS3_X")}},
-        {SKSE::InputMap::kGamepadButtonOffset_Y, {ICON_PATH("360_Y"), ICON_PATH("PS3_Y")}},
-        {SKSE::InputMap::kGamepadButtonOffset_LT, {ICON_PATH("360_LT"), ICON_PATH("PS3_LT")}},
-        {SKSE::InputMap::kGamepadButtonOffset_RT, {ICON_PATH("360_RT"), ICON_PATH("PS3_RT")}},
-        {SKSE::InputMap::kGamepadButtonOffset_DPAD_UP, {ICON_PATH("Up"), ICON_PATH("Up")}},
-        {SKSE::InputMap::kGamepadButtonOffset_DPAD_DOWN, {ICON_PATH("Down"), ICON_PATH("Down")}},
-        {SKSE::InputMap::kGamepadButtonOffset_DPAD_LEFT, {ICON_PATH("Left"), ICON_PATH("Left")}},
-        {SKSE::InputMap::kGamepadButtonOffset_DPAD_RIGHT, {ICON_PATH("Right"), ICON_PATH("Right")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kStart), {ICON_PATH("360_Start"), ICON_PATH("PS3_Start")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kBack), {ICON_PATH("360_Back"), ICON_PATH("PS3_Back")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kLeftThumb), {ICON_PATH("360_L3"), ICON_PATH("PS3_L3")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kRightThumb), {ICON_PATH("360_R3"), ICON_PATH("PS3_R3")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kLeftShoulder), {ICON_PATH("360_LB"), ICON_PATH("PS3_LB")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kRightShoulder), {ICON_PATH("360_RB"), ICON_PATH("PS3_RB")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kA), {ICON_PATH("360_A"), ICON_PATH("PS3_A")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kB), {ICON_PATH("360_B"), ICON_PATH("PS3_B")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kX), {ICON_PATH("360_X"), ICON_PATH("PS3_X")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kY), {ICON_PATH("360_Y"), ICON_PATH("PS3_Y")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kLeftTrigger), {ICON_PATH("360_LT"), ICON_PATH("PS3_LT")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kRightTrigger), {ICON_PATH("360_RT"), ICON_PATH("PS3_RT")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kUp), {ICON_PATH("Up"), ICON_PATH("Up")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kDown), {ICON_PATH("Down"), ICON_PATH("Down")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kLeft), {ICON_PATH("Left"), ICON_PATH("Left")}},
+        {static_cast<std::uint32_t>(Input::GamepadKeys::kRight), {ICON_PATH("Right"), ICON_PATH("Right")}},
     };
 
     std::map<std::uint32_t, const char*> mouse{
@@ -147,7 +147,7 @@ namespace IconPaths {
         {Input::MouseButtons::kButton6, ICON_PATH("Mouse7")},    {Input::MouseButtons::kButton7, ICON_PATH("Mouse8")},
     };
 
-    const const char* GetIconPath(Input::Source source, uint32_t key) {
+    const char* GetIconPath(Input::Source source, uint32_t key) {
         if (source == Input::Source::kKeyboard) {
             IF_FIND(keyboard, (Input::KeyboardKeys)key, it) { return it->second; }
         } else if (source == Input::Source::kMouseButton) {
@@ -161,7 +161,10 @@ namespace IconPaths {
         return unknownKey;
     }
 }
+const char* Icons::GetPath(Input::Source device, uint32_t key) {
+    return IconPaths::GetIconPath(device, key);
+}
+
 void Icons::Render(Input::Source device, uint32_t key, ImVec2 position, ImVec2 size, ImColor color) {
-    using namespace IconPaths;
-    TextureManager::Render(GetIconPath(device, key), position, size, color);
+    TextureManager::Render(GetPath(device, key), position, size, color);
 }

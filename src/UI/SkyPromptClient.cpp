@@ -4,6 +4,8 @@
 #include <array>
 
 #include "HUD.h"
+#include "Icon.h"
+#include "Input.h"
 #include "InputConfig.h"
 #include "SkyPromptAPI.h"
 #include "Translations.h"
@@ -49,6 +51,10 @@ namespace {
     constexpr char iconScale[] = "\xEF\x90\xA4";
     constexpr char iconReset[] = "\xEF\x87\x9A";
     constexpr char iconExit[] = "\xEF\x8B\xB5";
+    constexpr char mouseDragIconPath[] =
+        "Data\\Interface\\ImGuiIcons\\Icons\\mouse.png";
+    constexpr char gamepadDragIconPath[] =
+        "Data\\Interface\\ImGuiIcons\\Icons\\thumbstickr.png";
 
     bool IsInventoryCloneItem(RE::TESBoundObject* item) {
         if (!item || !item->As<RE::TESObjectMISC>() || !IsDynamicId(item->GetFormID())) {
@@ -144,6 +150,7 @@ bool isTransformMode = false;
 bool isTransformDragging = false;
 TransformMode transformMode = TransformMode::kRotationHorizontal;
 bool isEnabled = false;
+bool wasGamepadLastUsed = false;
 
 class PlaceSink final : public SkyPromptAPI::PromptSink {
 public:
@@ -454,6 +461,86 @@ bool RenderModeButton(
     return pressed;
 }
 
+Input::Source GetIconSource(RE::INPUT_DEVICE device) {
+    switch (device) {
+        case RE::INPUT_DEVICE::kKeyboard:
+            return Input::Source::kKeyboard;
+        case RE::INPUT_DEVICE::kMouse:
+            return Input::Source::kMouseButton;
+        case RE::INPUT_DEVICE::kGamepad:
+            return Input::Source::kGamepadDirectX;
+        default:
+            return Input::Source::kNone;
+    }
+}
+
+const char* GetBindingIconPath(const char* action) {
+    const std::vector<std::pair<RE::INPUT_DEVICE, std::uint32_t>> bindings =
+        InputConfig::Get(action);
+    const RE::INPUT_DEVICE preferredDevice = wasGamepadLastUsed ?
+        RE::INPUT_DEVICE::kGamepad :
+        RE::INPUT_DEVICE::kKeyboard;
+
+    for (const std::pair<RE::INPUT_DEVICE, std::uint32_t>& binding : bindings) {
+        if (binding.first == preferredDevice) {
+            return Icons::GetPath(
+                GetIconSource(binding.first),
+                binding.second);
+        }
+    }
+
+    return Icons::GetPath(Input::Source::kNone, 0);
+}
+
+void RenderControlHint(
+    const char* description,
+    const char* iconPath,
+    float scale) {
+    const float iconSize = 42.0f * scale;
+    const float iconSpacing = 14.0f * scale;
+    const float rowPadding = 4.0f * scale;
+    const float availableWidth = ImGui::GetContentRegionAvail().x;
+    const float textWidth = std::max(
+        0.0f,
+        availableWidth - iconSize - iconSpacing);
+    const ImVec2 descriptionSize = ImGui::CalcTextSize(
+        description,
+        nullptr,
+        false,
+        textWidth);
+    const float rowHeight =
+        std::max(iconSize, descriptionSize.y) + rowPadding * 2.0f;
+    const ImVec2 rowMinimum = ImGui::GetCursorScreenPos();
+    ImGui::Dummy(ImVec2{availableWidth, rowHeight});
+
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    const ImTextureID texture = TextureManager::GetTexture(
+        iconPath,
+        ImVec2{iconSize, iconSize});
+    if (texture) {
+        const ImVec2 iconMinimum{
+            rowMinimum.x,
+            rowMinimum.y + (rowHeight - iconSize) * 0.5f};
+        drawList->AddImage(
+            texture,
+            iconMinimum,
+            ImVec2{
+                iconMinimum.x + iconSize,
+                iconMinimum.y + iconSize});
+    }
+
+    drawList->AddText(
+        ImGui::GetFont(),
+        ImGui::GetFontSize(),
+        ImVec2{
+            rowMinimum.x + iconSize + iconSpacing,
+            rowMinimum.y + (rowHeight - descriptionSize.y) * 0.5f},
+        ImGui::GetColorU32(ImGuiCol_Text),
+        description,
+        nullptr,
+        textWidth);
+}
+
 void RenderTransformMenu() {
     if (!isTransformMode) {
         return;
@@ -592,20 +679,18 @@ void RenderTransformMenu() {
 
         ImGui::Separator();
         ImGui::TextUnformatted(Translations::Get("TransformMenu.Controls.Section"));
-        ImGui::PushTextWrapPos(0.0f);
-        ImGui::BulletText(
-            "%s",
-            Translations::Get("TransformMenu.Controls.Select"));
-        ImGui::BulletText(
-            "%s",
-            Translations::Get("TransformMenu.Controls.Cycle"));
-        std::string transformBindingLabel =
-            InputConfig::GetBindingLabel("SkyPrompt.Place.Transform");
-        const std::string closeTip = std::vformat(
-            Translations::Get("TransformMenu.Controls.Close"),
-            std::make_format_args(transformBindingLabel));
-        ImGui::BulletText("%s", closeTip.c_str());
-        ImGui::PopTextWrapPos();
+        RenderControlHint(
+            Translations::Get("TransformMenu.Controls.Drag"),
+            wasGamepadLastUsed ? gamepadDragIconPath : mouseDragIconPath,
+            scale);
+        RenderControlHint(
+            Translations::Get("TransformMenu.Controls.Reset"),
+            GetBindingIconPath("SkyPrompt.Place.ResetTransform"),
+            scale);
+        RenderControlHint(
+            Translations::Get("TransformMenu.Controls.Exit"),
+            GetBindingIconPath("SkyPrompt.Place.Transform"),
+            scale);
     }
     SlicedWindow::End();
     if (transformMenuFont) {
@@ -711,6 +796,9 @@ bool SkyPromptClient::GetIsEnabled() { return isEnabled; }
 
 bool SkyPromptClient::OnInput(RE::InputEvent* event) {
     if (event) {
+        wasGamepadLastUsed =
+            event->GetDevice() == RE::INPUT_DEVICE::kGamepad;
+
         if (isTransformMode) {
             RE::ButtonEvent* button = event->AsButtonEvent();
             if (button && InputConfig::IsActivated(
