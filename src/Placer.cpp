@@ -2,6 +2,7 @@
 #include "Shader.h"
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 
 #include <glm/ext.hpp>
 #include <glm/glm.hpp>
@@ -31,6 +32,14 @@ namespace {
         return motionType == RE::hkpMotion::MotionType::kDynamic ||
             motionType == RE::hkpMotion::MotionType::kSphereInertia ||
             motionType == RE::hkpMotion::MotionType::kBoxInertia;
+    }
+
+    bool HasMovablePhysics(RE::hkpMotion::MotionType motionType) {
+        return motionType == RE::hkpMotion::MotionType::kDynamic ||
+            motionType == RE::hkpMotion::MotionType::kSphereInertia ||
+            motionType == RE::hkpMotion::MotionType::kBoxInertia ||
+            motionType == RE::hkpMotion::MotionType::kKeyframed ||
+            motionType == RE::hkpMotion::MotionType::kThinBoxInertia;
     }
 
     void FixDynamicBodiesInPlace(RE::TESObjectREFR* ref) {
@@ -147,6 +156,8 @@ namespace {
 
         const RE::NiMatrix3 rotationDelta =
             newTransform.rotate * oldTransform.rotate.Transpose();
+        const float scaleDelta = oldTransform.scale != 0.0f ?
+            newTransform.scale / oldTransform.scale : 1.0f;
         const float worldScale = RE::bhkWorld::GetWorldScale();
         const float worldScaleInverse = RE::bhkWorld::GetWorldScaleInverse();
 
@@ -159,6 +170,12 @@ namespace {
                 if (!rigidBody) {
                     return RE::BSVisit::BSVisitControl::kContinue;
                 }
+
+                RE::hkpRigidBody* havokBody = rigidBody->GetRigidBody();
+                const float bodyScaleDelta =
+                    havokBody &&
+                        HasMovablePhysics(havokBody->motion.type.get()) ?
+                    scaleDelta : 1.0f;
 
                 RE::hkVector4 bodyPosition;
                 RE::hkQuaternion bodyRotation;
@@ -177,7 +194,9 @@ namespace {
                 };
                 const RE::NiPoint3 newBodyPosition =
                     newTransform.translate +
-                    rotationDelta * (oldBodyPosition - oldTransform.translate);
+                    rotationDelta *
+                        ((oldBodyPosition - oldTransform.translate) *
+                         bodyScaleDelta);
 
                 const RE::NiQuaternion oldBodyRotation{
                     rotation[3], rotation[0], rotation[1], rotation[2]};
@@ -202,6 +221,176 @@ namespace {
 
                 return RE::BSVisit::BSVisitControl::kContinue;
             });
+    }
+
+    bool ScaleHavokShape(
+        const RE::hkpShape* shape,
+        float scaleRatio,
+        std::unordered_set<const RE::hkpShape*>& scaledShapes) {
+        if (!shape) {
+            return false;
+        }
+        if (scaledShapes.contains(shape)) {
+            return true;
+        }
+
+        const RE::hkVector4 scaleVector(scaleRatio);
+        switch (shape->type) {
+        case RE::hkpShapeType::kBox:
+            {
+                RE::hkpBoxShape* boxShape =
+                    const_cast<RE::hkpBoxShape*>(
+                        static_cast<const RE::hkpBoxShape*>(shape));
+                boxShape->radius *= scaleRatio;
+                boxShape->halfExtents = boxShape->halfExtents * scaleVector;
+            }
+            break;
+        case RE::hkpShapeType::kSphere:
+            {
+                RE::hkpSphereShape* sphereShape =
+                    const_cast<RE::hkpSphereShape*>(
+                        static_cast<const RE::hkpSphereShape*>(shape));
+                sphereShape->radius *= scaleRatio;
+            }
+            break;
+        case RE::hkpShapeType::kCapsule:
+            {
+                RE::hkpCapsuleShape* capsuleShape =
+                    const_cast<RE::hkpCapsuleShape*>(
+                        static_cast<const RE::hkpCapsuleShape*>(shape));
+                capsuleShape->radius *= scaleRatio;
+                capsuleShape->vertexA = capsuleShape->vertexA * scaleVector;
+                capsuleShape->vertexB = capsuleShape->vertexB * scaleVector;
+            }
+            break;
+        case RE::hkpShapeType::kConvexVertices:
+            {
+                RE::hkpConvexVerticesShape* verticesShape =
+                    const_cast<RE::hkpConvexVerticesShape*>(
+                        static_cast<const RE::hkpConvexVerticesShape*>(shape));
+                verticesShape->radius *= scaleRatio;
+                verticesShape->aabbHalfExtents =
+                    verticesShape->aabbHalfExtents * scaleVector;
+                verticesShape->aabbCenter =
+                    verticesShape->aabbCenter * scaleVector;
+
+                for (RE::hkFourTransposedPoints& vertices :
+                     verticesShape->rotatedVertices) {
+                    vertices.x = vertices.x * scaleVector;
+                    vertices.y = vertices.y * scaleVector;
+                    vertices.z = vertices.z * scaleVector;
+                }
+
+                const __m128 planeScale =
+                    _mm_setr_ps(1.0f, 1.0f, 1.0f, scaleRatio);
+                for (RE::hkVector4& plane : verticesShape->planeEquations) {
+                    plane.quad = _mm_mul_ps(plane.quad, planeScale);
+                }
+            }
+            break;
+        default:
+            {
+                const RE::hkpShapeContainer* container = shape->GetContainer();
+                if (!container) {
+                    return false;
+                }
+
+                bool scaledChild = false;
+                for (RE::hkpShapeKey key = container->GetFirstKey();
+                     key != RE::HK_INVALID_SHAPE_KEY;
+                     key = container->GetNextKey(key)) {
+                    RE::hkpShapeBuffer shapeBuffer;
+                    const RE::hkpShape* child =
+                        container->GetChildShape(key, shapeBuffer);
+                    scaledChild |=
+                        ScaleHavokShape(child, scaleRatio, scaledShapes);
+                }
+                if (!scaledChild) {
+                    return false;
+                }
+            }
+            break;
+        }
+
+        scaledShapes.insert(shape);
+        return true;
+    }
+
+    bool ScaleCollisionShapes(
+        RE::TESObjectREFR* ref,
+        RE::NiAVObject* root,
+        float scaleRatio,
+        std::unordered_set<const RE::hkpShape*>& scaledShapes) {
+        if (!ref || !root || scaleRatio == 1.0f) {
+            return scaleRatio == 1.0f;
+        }
+
+        RE::TESObjectCELL* cell = ref->GetParentCell();
+        RE::bhkWorld* world = cell ? cell->GetbhkWorld() : nullptr;
+        if (!world) {
+            return false;
+        }
+
+        bool foundMovablePhysics = false;
+        bool scaledCollision = false;
+        RE::BSWriteLockGuard locker(world->worldLock);
+        RE::BSVisit::TraverseScenegraphCollision(
+            root,
+            [&](RE::bhkNiCollisionObject* collisionObject) {
+                RE::bhkWorldObject* body = collisionObject ?
+                    collisionObject->body.get() : nullptr;
+                RE::bhkRigidBody* rigidBody =
+                    body ? body->AsBhkRigidBody() : nullptr;
+                RE::hkpRigidBody* havokBody =
+                    rigidBody ? rigidBody->GetRigidBody() : nullptr;
+                if (!havokBody ||
+                    !HasMovablePhysics(havokBody->motion.type.get())) {
+                    return RE::BSVisit::BSVisitControl::kContinue;
+                }
+
+                foundMovablePhysics = true;
+                const RE::hkpShape* shape =
+                    havokBody->GetShape();
+                if (ScaleHavokShape(shape, scaleRatio, scaledShapes)) {
+                    havokBody->UpdateShape(nullptr);
+                    scaledCollision = true;
+                }
+                return RE::BSVisit::BSVisitControl::kContinue;
+            });
+
+        // Fixed collision deliberately keeps the original transform behavior.
+        return !foundMovablePhysics || scaledCollision;
+    }
+
+    void ApplyCollisionScale(
+        RE::TESObjectREFR* ref,
+        RE::NiAVObject* root,
+        float targetScale,
+        float& appliedScale,
+        RE::NiAVObject*& trackedRoot,
+        std::unordered_set<const RE::hkpShape*>& scaledShapes) {
+        if (!root) {
+            return;
+        }
+        if (trackedRoot != root) {
+            // A replacement 3D has freshly initialized Havok shapes for the
+            // reference's current scale.
+            trackedRoot = root;
+            appliedScale = targetScale;
+            return;
+        }
+        if (targetScale == appliedScale ||
+            targetScale <= 0.0f ||
+            appliedScale <= 0.0f ||
+            !std::isfinite(targetScale) ||
+            !std::isfinite(appliedScale)) {
+            return;
+        }
+
+        const float scaleRatio = targetScale / appliedScale;
+        if (ScaleCollisionShapes(ref, root, scaleRatio, scaledShapes)) {
+            appliedScale = targetScale;
+        }
     }
 
     void ApplyLoadedReferenceScale(RE::NiAVObject* root, float scale) {
@@ -838,6 +1027,7 @@ void Placer::BeginGroupMove() {
         if (!selectedRef) {
             continue;
         }
+        RE::NiAVObject* selected3D = selectedRef->Get3D();
         GroupMember member{
             handle,
             selectedRef->GetPosition(),
@@ -846,10 +1036,11 @@ void Placer::BeginGroupMove() {
             selectedRef->GetAngle(),
             selectedRef->GetScale(),
             selectedRef->GetScale(),
+            1.0f,
+            selected3D,
             false
         };
 
-        RE::NiAVObject* selected3D = selectedRef->Get3D();
         if (selected3D) {
             const Geometry geometry(selected3D);
             if (!geometry.Empty()) {
@@ -898,6 +1089,7 @@ void Placer::ApplyGroupTransform() {
     const glm::mat4 currentPivotRotation = glm::eulerAngleXYZ(-currentAngle.x, -currentAngle.y, -currentAngle.z);
     const glm::mat4 rotationDelta = currentPivotRotation * glm::inverse(initialPivotRotation);
 
+    std::unordered_set<const RE::hkpShape*> scaledShapes;
     for (GroupMember& member : groupMembers) {
         const RE::NiPointer<RE::TESObjectREFR> memberRef = member.handle.get();
         if (!memberRef) {
@@ -935,6 +1127,13 @@ void Placer::ApplyGroupTransform() {
             memberRef->SetScale(member.currentScale);
             ApplyLoadedReferenceScale(member3D, member.currentScale);
             memberRef->Update3DPosition(true);
+            ApplyCollisionScale(
+                memberRef.get(),
+                member3D,
+                groupScale,
+                member.appliedCollisionScale,
+                member.collisionRoot,
+                scaledShapes);
         } else {
             memberRef->SetScale(member.currentScale);
         }
@@ -964,6 +1163,8 @@ void Placer::ShowGroupPlacementHighlights() {
 
 void Placer::FinishGroupMove(bool restoreOriginalTransform) {
     const RE::ObjectRefHandle movingHandle = GetMoveHandle();
+    const float collisionScale = restoreOriginalTransform ? 1.0f : groupScale;
+    std::unordered_set<const RE::hkpShape*> scaledShapes;
     for (GroupMember& member : groupMembers) {
         const RE::NiPointer<RE::TESObjectREFR> memberRef = member.handle.get();
         if (!memberRef) {
@@ -980,6 +1181,13 @@ void Placer::FinishGroupMove(bool restoreOriginalTransform) {
         if (member3D) {
             ApplyLoadedReferenceScale(member3D, memberScale);
             memberRef->Update3DPosition(true);
+            ApplyCollisionScale(
+                memberRef.get(),
+                member3D,
+                collisionScale,
+                member.appliedCollisionScale,
+                member.collisionRoot,
+                scaledShapes);
         }
         UpdateObjectRoom(member.handle);
         if (member.hasPlacementHighlight) {

@@ -10,6 +10,8 @@ class Placer {
         RE::NiPoint3 currentAngle;
         float initialScale;
         float currentScale;
+        float appliedCollisionScale;
+        RE::NiAVObject* collisionRoot;
         bool hasPlacementHighlight;
     };
 
