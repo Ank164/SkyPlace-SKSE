@@ -54,7 +54,7 @@ namespace {
     constexpr char mouseDragIconPath[] =
         "Data\\Interface\\ImGuiIcons\\Icons\\mouse.png";
     constexpr char gamepadDragIconPath[] =
-        "Data\\Interface\\ImGuiIcons\\Icons\\thumbstickr.png";
+        "Data\\Interface\\ImGuiIcons\\Icons\\thumbsticklr.png";
     constexpr char mouseCycleIconPath[] =
         "Data\\Interface\\ImGuiIcons\\Icons\\scroll.png";
     constexpr char gamepadCycleIconPath[] =

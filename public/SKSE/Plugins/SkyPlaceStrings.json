@@ -19,7 +19,7 @@
   "TransformMenu.Controls.Select": "Click: Select an option",
   "TransformMenu.Controls.Cycle": "Cycle options",
   "TransformMenu.Controls.Close": "{}: Close menu",
-  "TransformMenu.Controls.Drag": "Drag to transform",
+  "TransformMenu.Controls.Drag": "Transform",
   "TransformMenu.Controls.Reset": "Reset transform",
   "TransformMenu.Controls.Exit": "Exit transform mode",
   "TransformMenu.Exit.Section": "Options",

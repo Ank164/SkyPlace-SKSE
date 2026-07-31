@@ -148,10 +148,16 @@ ID3D11ShaderResourceView* TextureLoader::LoadTextureFromWICFile(
 
     const std::wstring widePath = ConvertToWString(path);
     ID3D11ShaderResourceView* texture = nullptr;
-    const HRESULT result = DirectX::CreateWICTextureFromFile(
+    const HRESULT result = DirectX::CreateWICTextureFromFileEx(
         device,
         context,
         widePath.c_str(),
+        0,
+        D3D11_USAGE_DEFAULT,
+        D3D11_BIND_SHADER_RESOURCE,
+        0,
+        0,
+        DirectX::WIC_LOADER_IGNORE_SRGB,
         nullptr,
         &texture);
     return SUCCEEDED(result) ? texture : nullptr;
