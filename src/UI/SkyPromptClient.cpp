@@ -160,20 +160,24 @@ bool wasGamepadLastUsed = false;
 class PlaceSink final : public SkyPromptAPI::PromptSink {
 public:
     void Show() {
-        bool expected = false;
-        if (!isShown.compare_exchange_strong(expected, true)) {
-            return;
-        }
-        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
-            isShown.store(false);
-        }
+        Graphics::Queue([this]() {
+            bool expected = false;
+            if (!isShown.compare_exchange_strong(expected, true)) {
+                return;
+            }
+            if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+                isShown.store(false);
+            }
+        });
     }
 
     void Hide() {
-        if (!isShown.exchange(false)) {
-            return;
-        }
-        SkyPromptAPI::RemovePrompt(this, clientID);
+        Graphics::Queue([this]() {
+            if (!isShown.exchange(false)) {
+                return;
+            }
+            SkyPromptAPI::RemovePrompt(this, clientID);
+        });
     }
 
 
@@ -192,14 +196,18 @@ private:
 class PickSink final : public SkyPromptAPI::PromptSink {
 public:
     void Show(const RE::ObjectRefHandle& hoverHandle) {
-        RefreshPrompts(hoverHandle);
-        bool expected = false;
-        if (!isShown.compare_exchange_strong(expected, true)) {
-            return;
-        }
-        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
-            isShown.store(false);
-        }
+        Graphics::Queue([this, hoverHandle]() {
+            if (!RefreshPrompts(hoverHandle)) {
+                return;
+            }
+            bool expected = false;
+            if (!isShown.compare_exchange_strong(expected, true)) {
+                return;
+            }
+            if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+                isShown.store(false);
+            }
+        });
     }
 
     PickSink() {
@@ -207,10 +215,12 @@ public:
     }
 
     void Hide() {
-        if (!isShown.exchange(false)) {
-            return;
-        }
-        SkyPromptAPI::RemovePrompt(this, clientID);
+        Graphics::Queue([this]() {
+            if (!isShown.exchange(false)) {
+                return;
+            }
+            SkyPromptAPI::RemovePrompt(this, clientID);
+        });
     }
 
     static inline ButtonSetPick set;
@@ -219,7 +229,16 @@ public:
 
     void ProcessEvent(const SkyPromptAPI::PromptEvent event) override;
 
-    void RefreshPrompts(const RE::ObjectRefHandle& hoverHandle) {
+    bool RefreshPrompts(const RE::ObjectRefHandle& hoverHandle) {
+        const RE::NiPointer<RE::TESObjectREFR> ref = hoverHandle.get();
+        if (!ref) {
+            return false;
+        }
+
+        for (SkyPromptAPI::Prompt& prompt : set.prompts) {
+            prompt.refid = ref->GetFormID();
+        }
+
         const bool isHoverSelected = Picker::IsSelected(hoverHandle);
         moveAndPickPromptsDisabled = Picker::GetSelectionCount() > 0 && !isHoverSelected;
 
@@ -251,6 +270,7 @@ public:
             set.prompts[3].text = Translations::Get("SkyPrompt.Pick.DeselectAll");
             set.prompts[3].text_color = defaultPromptColor;
         }
+        return true;
     }
 
     std::span<const SkyPromptAPI::Prompt> GetPrompts() override { return set.prompts; }
@@ -261,25 +281,40 @@ private:
 
 class InventoryCloneSink final : public SkyPromptAPI::PromptSink {
 public:
-    void Show() {
-        bool expected = false;
-        if (!isShown.compare_exchange_strong(expected, true)) {
-            return;
-        }
-        if (!SkyPromptAPI::SendPrompt(this, clientID)) {
-            isShown.store(false);
-        }
+    void Show(
+        const RE::FormID refID,
+        const std::int32_t cost,
+        std::string text) {
+        Graphics::Queue([this, refID, cost, text = std::move(text)]() mutable {
+            itemFormID = refID;
+            cloneCost = cost;
+            promptText = std::move(text);
+            set.prompts[0].text = promptText;
+            for (SkyPromptAPI::Prompt& prompt : set.prompts) {
+                prompt.refid = refID;
+            }
+
+            bool expected = false;
+            if (!isShown.compare_exchange_strong(expected, true)) {
+                return;
+            }
+            if (!SkyPromptAPI::SendPrompt(this, clientID)) {
+                isShown.store(false);
+            }
+        });
     }
 
     InventoryCloneSink() { set = ButtonSetInventoryClone(); }
 
     void Hide() {
-        if (isShown.exchange(false)) {
-            SkyPromptAPI::RemovePrompt(this, clientID);
-        }
-        itemFormID = 0;
-        cloneCost = 0;
-        promptText.clear();
+        Graphics::Queue([this]() {
+            if (isShown.exchange(false)) {
+                SkyPromptAPI::RemovePrompt(this, clientID);
+            }
+            itemFormID = 0;
+            cloneCost = 0;
+            promptText.clear();
+        });
     }
 
     static inline ButtonSetInventoryClone set;
@@ -966,24 +1001,22 @@ void SkyPromptClient::ShowInventoryClone(
 
     SetTransformMode(false, false);
     inventoryCloneSink->Hide();
-    inventoryCloneSink->itemFormID = item->GetFormID();
-    inventoryCloneSink->cloneCost = cloneCost;
+    std::string promptText;
     if (cloneCost == 1) {
-        inventoryCloneSink->promptText =
+        promptText =
             Translations::Get("SkyPrompt.Inventory.Clone.Single");
     } else {
-        inventoryCloneSink->promptText = std::vformat(
+        promptText = std::vformat(
             Translations::Get("SkyPrompt.Inventory.Clone.Group"),
             std::make_format_args(cloneCost));
-    }
-    inventoryCloneSink->set.prompts[0].text = inventoryCloneSink->promptText;
-    for (SkyPromptAPI::Prompt& prompt : inventoryCloneSink->set.prompts) {
-        prompt.refid = ref->GetFormID();
     }
 
     pickSink->Hide();
     placeSink->Hide();
-    inventoryCloneSink->Show();
+    inventoryCloneSink->Show(
+        ref->GetFormID(),
+        cloneCost,
+        std::move(promptText));
 }
 
 void SkyPromptClient::ShowPick(const RE::ObjectRefHandle& handle) {
@@ -992,9 +1025,6 @@ void SkyPromptClient::ShowPick(const RE::ObjectRefHandle& handle) {
         return;
     }
     SetTransformMode(false, false);
-    for (auto& item : pickSink->set.prompts) {
-        item.refid = ref->GetFormID();
-    }
     pickSink->Hide();
     placeSink->Hide();
     pickSink->Show(handle);

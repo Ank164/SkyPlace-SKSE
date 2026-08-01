@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <mutex>
 
 #include "SkyPlaceCursorMenu.h"
 #include "Texture.h"
@@ -146,6 +147,7 @@ void Graphics::CreateD3DAndSwapChain::Install() {
 
 void Graphics::DrawHook::thunk(std::uint32_t a_timer) {
     func(a_timer);
+    RunQueuedTasks();
 
     RE::UI* ui = RE::UI::GetSingleton();
     if (ui && ui->IsMenuOpen(SkyPlaceCursorMenu::MENU_NAME)) {
@@ -153,6 +155,23 @@ void Graphics::DrawHook::thunk(std::uint32_t a_timer) {
     }
 
     Render();
+}
+
+void Graphics::Queue(std::function<void()> task) {
+    std::lock_guard lock(queuedTasksMutex);
+    queuedTasks.push_back(std::move(task));
+}
+
+void Graphics::RunQueuedTasks() {
+    std::vector<std::function<void()>> tasks;
+    {
+        std::lock_guard lock(queuedTasksMutex);
+        tasks.swap(queuedTasks);
+    }
+
+    for (std::function<void()>& task : tasks) {
+        task();
+    }
 }
 
 void Graphics::Render() {

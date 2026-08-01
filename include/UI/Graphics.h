@@ -1,4 +1,6 @@
 #pragma once
+#include <mutex>
+
 #include "dxgi.h"
 #include "imgui_impl_dx11.h"
 #include "imgui_impl_win32.h"
@@ -25,11 +27,15 @@ class Graphics {
         static void Install();
     };
     static inline std::vector<std::function<void()>> drawFunctions;
+    static inline std::vector<std::function<void()>> queuedTasks;
+    static inline std::mutex queuedTasksMutex;
     static inline ImFont* transformMenuFont = nullptr;
     static float GetResolutionScale();
+    static void RunQueuedTasks();
 
 public:
     static ImFont* GetTransformMenuFont();
+    static void Queue(std::function<void()> task);
     static void Register(std::function<void()> drawFunction);
     static void Render();
     static void Install();
