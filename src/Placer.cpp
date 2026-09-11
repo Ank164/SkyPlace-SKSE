@@ -821,6 +821,12 @@ void Placer::Move(const RE::ObjectRefHandle& handle) {
 }
 
 bool Placer::RequestDrop(RE::TESBoundObject* obj, bool itemRemoved) {
+    // In-Game Patcher owns all placement entry points in companion mode.
+    // Reject SkyPlace's inventory/drop entry so it cannot start a hidden
+    // placement session with no controls available to finish it.
+    if (REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
+        return false;
+    }
     if (!ObjectGroup::IsGroupItem(obj) || pendingDropFormID != 0) {
         return false;
     }

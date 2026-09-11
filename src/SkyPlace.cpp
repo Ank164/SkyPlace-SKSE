@@ -22,10 +22,12 @@ void PickUpMovingObject() {
 }
 
 void PlaceMovingObject() { 
+	pendingMove = false;
 	Placer::PlaceEvent(); 
 }
 
 void CancelMovingObject() {
+	pendingMove = false;
 	Placer::CancelPlaceEvent();
 }
 
@@ -35,7 +37,11 @@ void MoveObject(const RE::ObjectRefHandle& handle) {
 	}
 
 	const auto beginMove = [handle]() {
-		pendingMove = false;
+		// A cancel/commit can arrive while this task is queued. Do not begin
+		// placement after the owning UI has already ended the request.
+		if (!pendingMove.exchange(false)) {
+			return;
+		}
 		Picker::MoveEvent(handle);
 	};
 
