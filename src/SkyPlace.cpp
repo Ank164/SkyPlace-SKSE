@@ -22,6 +22,10 @@ void MoveObject(const RE::ObjectRefHandle& handle) {
 	Placer::Move(handle);
 }
 
+bool IsMovingObject() {
+	return Placer::IsPlacing();
+}
+
 void PlaceObjectFromPlayerInventory(RE::TESBoundObject* obj) { 
 	Placer::RequestDrop(obj);
 }
