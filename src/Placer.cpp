@@ -814,7 +814,9 @@ void Placer::Move(const RE::ObjectRefHandle& handle) {
 
     // controls->Show();
     HUD::ShowPlace();
-    HUD::SetIsEnabled(true);
+    if (!REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
+        HUD::SetIsEnabled(true);
+    }
     inventorySource = false;
 }
 

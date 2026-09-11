@@ -22,6 +22,13 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
     if (message->type == SKSE::MessagingInterface::kDataLoaded) {
         SkyPlaceCursorMenu::Register();
         HUD::Install();
+        // In-Game Patcher owns object targeting when both plugins are loaded.
+        // SkyPlace still presents and processes its placement controls after a
+        // reference is handed over through the API.
+        if (REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
+            HUD::SetIsEnabled(false);
+            logger::info("In-Game Patcher detected; disabled SkyPlace picker UI");
+        }
         FormsById::Install();
         ScreenLog::Install();
     }

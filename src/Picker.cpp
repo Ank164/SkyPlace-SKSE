@@ -216,6 +216,12 @@ void Picker::Tick() {
     if (Placer::IsPlacing()) {
         return;
     }
+    if (REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
+        if (GetLastHoverHandle()) {
+            SaveChangeEvent();
+        }
+        return;
+    }
     const RE::ObjectRefHandle previousHoverHandle = GetLastHoverHandle();
     RE::ObjectRefHandle nextHoverHandle;
 
