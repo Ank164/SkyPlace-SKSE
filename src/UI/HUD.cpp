@@ -54,7 +54,7 @@ void HUD::ShowPlace() {
         return;
     }
     displayingPlace = true;
-    if (!isMenuOpen) {
+    if (!isMenuOpen && !REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
         SkyPromptClient::ShowPlace();
     }
 }
@@ -81,7 +81,7 @@ void HUD::OnMenuOpen() {
 void HUD::OnMenuClose() {
     if (isMenuOpen) {
         isMenuOpen = false;
-        if (displayingPlace) {
+        if (displayingPlace && !REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
             SkyPromptClient::ShowPlace();
         }
         else if (displayingPick) {

@@ -24,6 +24,10 @@ void PlaceMovingObject() {
 	Placer::PlaceEvent(); 
 }
 
+void CancelMovingObject() {
+	Placer::CancelPlaceEvent();
+}
+
 void MoveObject(const RE::ObjectRefHandle& handle) {
 	if (!handle || Placer::IsPlacing() || pendingMove.exchange(true)) {
 		return;

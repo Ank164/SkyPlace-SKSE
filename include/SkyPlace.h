@@ -7,6 +7,7 @@
 FUNCTION_PREFIX void PickUpObject(const RE::ObjectRefHandle& handle);
 FUNCTION_PREFIX void PickUpMovingObject();
 FUNCTION_PREFIX void PlaceMovingObject();
+FUNCTION_PREFIX void CancelMovingObject();
 FUNCTION_PREFIX void MoveObject(const RE::ObjectRefHandle& handle);
 FUNCTION_PREFIX bool IsMovingObject();
 FUNCTION_PREFIX void PlaceObjectFromPlayerInventory(RE::TESBoundObject* obj);
@@ -27,6 +28,7 @@ public:
     static void PickUpObject(const RE::ObjectRefHandle& handle);
     static void PickUpMovingObject();
     static void PlaceMovingObject();
+    static void CancelMovingObject();
     static void MoveObject(const RE::ObjectRefHandle& handle);
     static bool IsMovingObject();
     static void PlaceObjectFromPlayerInventory(RE::TESBoundObject* obj);
@@ -35,6 +37,7 @@ public:
 API_FUNCTION_IMPL(SkyPlace::PickUpObject, "PickUpObject", void, const RE::ObjectRefHandle& handle, handle)
 API_FUNCTION_IMPL(SkyPlace::PickUpMovingObject, "PickUpMovingObject", void, , )
 API_FUNCTION_IMPL(SkyPlace::PlaceMovingObject, "PlaceMovingObject", void, , )
+API_FUNCTION_IMPL(SkyPlace::CancelMovingObject, "CancelMovingObject", void, , )
 API_FUNCTION_IMPL(SkyPlace::MoveObject, "MoveObject", void, const RE::ObjectRefHandle& handle, handle)
 API_FUNCTION_IMPL(SkyPlace::IsMovingObject, "IsMovingObject", bool, , )
 API_FUNCTION_IMPL(SkyPlace::PlaceObjectFromPlayerInventory, "PlaceObjectFromPlayerInventory", void, RE::TESBoundObject* obj, obj)
