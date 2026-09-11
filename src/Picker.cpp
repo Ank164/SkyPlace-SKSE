@@ -52,8 +52,12 @@ void Picker::MoveEvent() {
 void Picker::MoveEvent(const RE::ObjectRefHandle& handle) {
     const RE::NiPointer<RE::TESObjectREFR> ref = handle.get();
     if (!ref || Placer::IsPlacing()) {
+        logger::warn("Move request rejected: reference={}, alreadyPlacing={}",
+                     static_cast<bool>(ref), Placer::IsPlacing());
         return;
     }
+
+    logger::info("Beginning unified move for {:08X} ({})", ref->GetFormID(), ref->GetName());
 
     // Force a clean Pick-to-Place HUD transition even if the cached Place
     // state was left active by an earlier prompt callback.
