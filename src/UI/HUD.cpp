@@ -156,6 +156,9 @@ bool HUD::GetIsEnabled() {
 }
 
 void HUD::SetIsEnabled(bool value) {
+    if (value && REX::W32::GetModuleHandle(L"In-Game_Patcher")) {
+        value = false;
+    }
     const bool wasEnabled = SkyPromptClient::GetIsEnabled();
     SkyPromptClient::SetIsEnabled(value);
     if (!value) {

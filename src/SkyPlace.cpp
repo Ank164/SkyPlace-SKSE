@@ -1,6 +1,7 @@
 #include "SkyPlace.h"
 #include "Picker.h"
 #include "Placer.h"
+#include "Transform.h"
 
 #include <atomic>
 
@@ -50,6 +51,22 @@ void MoveObject(const RE::ObjectRefHandle& handle) {
 
 bool IsMovingObject() {
 	return pendingMove || Placer::IsPlacing();
+}
+
+bool SetObjectTransform(const RE::ObjectRefHandle& handle, const RE::NiPoint3& position,
+                        const RE::NiPoint3& angle, float scale) {
+	const RE::NiPointer<RE::TESObjectREFR> ref = handle.get();
+	if (!ref) {
+		return false;
+	}
+
+	Transform::SetPosition(handle, position);
+	Transform::SetAngle(handle, angle);
+	ref->SetScale(scale);
+	if (ref->Is3DLoaded()) {
+		ref->Update3DPosition(true);
+	}
+	return true;
 }
 
 void PlaceObjectFromPlayerInventory(RE::TESBoundObject* obj) { 
