@@ -882,6 +882,42 @@ bool SkyPromptClient::OnInput(RE::InputEvent* event) {
         wasGamepadLastUsed =
             event->GetDevice() == RE::INPUT_DEVICE::kGamepad;
 
+        // In companion mode In-Game Patcher owns the visible prompts. Handle
+        // the advertised placement buttons directly because SkyPrompt does not
+        // dispatch kHint actions back to this client.
+        if (REX::W32::GetModuleHandle(L"In-Game_Patcher") &&
+            Placer::IsPlacing() && !isTransformMode) {
+            RE::ButtonEvent* button = event->AsButtonEvent();
+            if (button && button->IsDown()) {
+                const auto device = event->GetDevice();
+                const std::uint32_t key = button->GetIDCode();
+                bool place = device == RE::INPUT_DEVICE::kMouse &&
+                    key == static_cast<std::uint32_t>(RE::BSWin32MouseDevice::Key::kLeftButton);
+                bool cancel = (device == RE::INPUT_DEVICE::kMouse &&
+                               key == static_cast<std::uint32_t>(RE::BSWin32MouseDevice::Key::kRightButton)) ||
+                              (device == RE::INPUT_DEVICE::kKeyboard &&
+                               key == static_cast<std::uint32_t>(RE::BSWin32KeyboardDevice::Key::kEscape));
+                if (place || cancel) {
+                    const SKSE::TaskInterface* tasks = SKSE::GetTaskInterface();
+                    const auto action = [place]() {
+                        if (place) {
+                            logger::info("Companion input committed placement");
+                            Placer::PlaceEvent();
+                        } else {
+                            logger::info("Companion input cancelled placement");
+                            Placer::CancelPlaceEvent();
+                        }
+                    };
+                    if (tasks) {
+                        tasks->AddTask(action);
+                    } else {
+                        action();
+                    }
+                    return true;
+                }
+            }
+        }
+
         if (isTransformMode) {
             RE::ButtonEvent* button = event->AsButtonEvent();
             if (button && InputConfig::IsActivated(
