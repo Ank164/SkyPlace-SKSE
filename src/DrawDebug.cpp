@@ -988,7 +988,6 @@ PS_OUTPUT main(PS_INPUT input) {
     class UpdateHooks {
     public:
         static void Install() {
-            SKSE::AllocTrampoline(14);
             auto& trampoline = SKSE::GetTrampoline();
             _Nullsub = trampoline.write_call<5>(REL::RelocationID(35565, 36564).address() + REL::Relocate(0x748, 0xc2b),
                                                 Nullsub);

@@ -37,7 +37,10 @@ void OnMessage(SKSE::MessagingInterface::Message* message) {
 
 
 SKSEPluginLoad(const SKSE::LoadInterface *skse) {
-    SKSE::Init(skse);
+    // SkyPlace installs seven 14-byte branches across its hook modules. Modern
+    // CommonLib initializes the trampoline only once, so reserve the complete
+    // pool before any module attempts to install a hook.
+    SKSE::Init(skse, { .trampoline = true, .trampolineSize = 128 });
     SKSE::GetMessagingInterface()->RegisterListener(OnMessage);
     SetupLog();
     Translations::Install();

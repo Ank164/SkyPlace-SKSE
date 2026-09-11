@@ -138,7 +138,6 @@ void Graphics::CreateD3DAndSwapChain::thunk() {
 }
 
 void Graphics::CreateD3DAndSwapChain::Install() {
-    SKSE::AllocTrampoline(14);
     auto& trampoline = SKSE::GetTrampoline();
     const REL::Relocation<std::uintptr_t> target{REL::RelocationID(75595, 77226)};  // BSGraphics::InitD3D
     CreateD3DAndSwapChain::func =
@@ -208,7 +207,6 @@ void Graphics::Render() {
 }
 
 void Graphics::DrawHook::Install() {
-    SKSE::AllocTrampoline(14);
     auto& trampoline = SKSE::GetTrampoline();
 	const REL::Relocation<std::uintptr_t> target2{REL::RelocationID(75461, 77246)};  // BSGraphics::Renderer::End
     DrawHook::func = trampoline.write_call<5>(target2.address() + 0x9, DrawHook::thunk);
